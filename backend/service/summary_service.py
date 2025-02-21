@@ -1,10 +1,11 @@
 import logging
-from typing import  Optional
+from typing import  Optional, List
 
 from garth import SleepData
 from garth.data.sleep import DailySleepDTO
 
 from ._base_service import BaseGarminService
+from data import DailySummary, Activity, SleepHRV
 
 logger = logging.getLogger(__name__)
 
@@ -18,28 +19,26 @@ class GarminSummaryService(BaseGarminService):
     - 현재 상태나 결과를 보여줌
     """
     
-    def get_daily_summary(self, date: str):
+    def get_daily_summary(self, date: str) -> Optional[DailySummary]:
         """
-        일일 전체 활동(운동, 수면, 수분, 스트레스) 요약
+        일일 전체 활동 요약 조회
         
         params:
             date: 조회 일자 (YYYY-MM-DD)
         returns:
-            DailySummaryDTO: 일일 전체 활동(운동, 수면, 수분, 스트레스) 요약
+            DailySummaryDTO: 일일 전체 활동 요약
         """
-        endpoint = "/usersummary-service/usersummary/daily"
-        params = {"calendarDate": date}
-        
-        endpoint_name = "일일 전체 활동(운동, 수면, 수분, 스트레스) 요약"
+        endpoint_name = "일일 전체 활동 요약"
         logger.info("%s 조회 - Date: %s", endpoint_name, date)
         try:
-            data = self._make_request(endpoint, params=params)
-            return self._format_response(data)
+            daily_summary = DailySummary.get(date, client=self.client)
+            if daily_summary:
+                return self._format_response(daily_summary, message="success")
+            return self._format_response(None, message="success")
         except Exception as e:
             logger.error("%s 조회 실패 - Date: %s, Error: %s", endpoint_name, date, str(e))
             return self._format_response(None, message="error")
         
-    
     def get_sleep_summary(self, date: str) -> Optional[DailySleepDTO]:
         """
         수면 데이터 요약
@@ -54,39 +53,33 @@ class GarminSummaryService(BaseGarminService):
         try:
             sleep_data = SleepData.get(date, client=self.client)
             if sleep_data:
-                return self._format_response(sleep_data.daily_sleep_dto, message="success")
+                return self._format_response(sleep_data, message="success")
             return self._format_response(None, message="success")
         except Exception as e:
             logger.error("%s 조회 실패 - Date: %s, Error: %s", endpoint_name, date, str(e))
             return self._format_response(None, message="error")
         
-    def get_sleep_hrv_summary(self, date: str):
+    def get_sleep_hrv_summary(self, date: str) -> Optional[SleepHRV]:
         """
         수면 HRV 요약
         
-        TODO: HRV 요약과 readings 분리
-        garth.data.hrv.HRVSummary 참고
-
         params:
             date: 조회 일자 (YYYY-MM-DD)
         returns:
-            SleepHRVSummaryDTO: 수면 HRV 요약
-        """ 
-        endpoint = f"/hrv-service/hrv/{date}"
-
+            SleepHRV: 수면 HRV 데이터
+        """
         endpoint_name = "수면 HRV 요약"
         logger.info("%s 조회 - Date: %s", endpoint_name, date)
         try:
-            raw_data = self._make_request(endpoint)
-            if not raw_data:
-                return self._format_response(None, message="데이터가 없습니다")
-            
-            return self._format_response(raw_data)
+            hrv_data = SleepHRV.get(date, client=self.client)
+            if hrv_data:
+                return self._format_response(hrv_data, message="success")
+            return self._format_response(None, message="success")
         except Exception as e:
             logger.error("%s 조회 실패 - Date: %s, Error: %s", endpoint_name, date, str(e))
             return self._format_response(None, message="error")
     
-    def get_activities(self, limit: int = 20, start: int = 0):
+    def get_activities(self, limit: int = 20, start: int = 0) -> Optional[List[Activity]]:
         """
         활동 목록 요약 조회
         예: 각 활동의 핵심 정보 요약
@@ -98,16 +91,13 @@ class GarminSummaryService(BaseGarminService):
             limit: 조회할 활동 수
             start: 시작 인덱스
         returns:
-            List[ActivityDTO]: 활동 목록 요약
+            List[Activity]: 활동 목록 요약
         """
-        endpoint = "/activitylist-service/activities/search/activities"
-        params = {"limit": limit, "start": start}
-
         endpoint_name = "활동 목록 요약"
         logger.info("%s 조회 - Limit: %d, Start: %d", endpoint_name, limit, start)
         try:
-            data = self._make_request(endpoint, params=params)
-            return self._format_response(data)
+            activities = Activity.list(limit, start, client=self.client)
+            return self._format_response(activities, message="success")
         except Exception as e:
             logger.error("%s 조회 실패 - Limit: %d, Start: %d, Error: %s", endpoint_name, limit, start, str(e))
             return self._format_response(None, message="error")
