@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, Float, String, Date, DateTime, ForeignKey, Index, CheckConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, Float, String, Date, DateTime, ForeignKey, Index, CheckConstraint, func, and_
+from sqlalchemy.orm import relationship, remote, foreign
 from .base import Base, TimeStampMixin
 
 class StepsDaily(Base, TimeStampMixin):
@@ -16,10 +16,15 @@ class StepsDaily(Base, TimeStampMixin):
     floors_climbed = Column(Integer)
 
     # 해당 일자의 상세 측정값들과 관계 설정
-    intraday_readings = relationship("StepsIntraday", 
-                                   back_populates="daily_summary",
-                                   primaryjoin="and_(StepsDaily.user_id==StepsIntraday.user_id, "
-                                             "cast(StepsDaily.date as DateTime)==cast(StepsIntraday.start_time as Date))")
+    intraday_readings = relationship(
+        "StepsIntraday", 
+        back_populates="daily_summary",
+        primaryjoin=lambda: and_(
+            StepsDaily.user_id == remote(foreign(StepsIntraday.user_id)),
+            func.date(StepsDaily.date) == func.date(remote(StepsIntraday.start_time))
+        ),
+        uselist=True
+    )
 
     user = relationship("User", backref="steps_dailies")
     __table_args__ = (Index('idx_steps_daily_user_date', 'user_id', 'date'),)
@@ -43,10 +48,18 @@ class StepsIntraday(Base):
     intensity = Column(Integer)
 
     # 해당 측정값의 일일 요약과 관계 설정
-    daily_summary = relationship("StepsDaily", 
-                               back_populates="intraday_readings",
-                               foreign_keys=[user_id],
-                               primaryjoin="and_(StepsDaily.user_id==StepsIntraday.user_id, "
-                                         "cast(StepsDaily.date as DateTime)==cast(StepsIntraday.start_time as Date))")
+    daily_summary = relationship(
+        "StepsDaily", 
+        back_populates="intraday_readings",
+        primaryjoin=lambda: and_(
+            foreign(StepsIntraday.user_id) == remote(StepsDaily.user_id),
+            func.date(StepsIntraday.start_time) == func.date(remote(StepsDaily.date))
+        ),
+        uselist=False
+    )
 
-    user = relationship("User", backref="steps_intraday")
+    user = relationship(
+        "User", 
+        backref="steps_intraday",
+        viewonly=True
+    )

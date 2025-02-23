@@ -5,4 +5,14 @@ from sqlalchemy import Column, DateTime
 Base = declarative_base()
 
 class TimeStampMixin:
-    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc)) 
+    created_at = Column(
+        DateTime(timezone=True), 
+        default=datetime.now(timezone.utc),
+        nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True), 
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+        nullable=False
+    ) 

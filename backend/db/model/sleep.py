@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, Float, Date, DateTime, ForeignKey, Index, String
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, Float, Date, DateTime, ForeignKey, Index, String, func, and_
+from sqlalchemy.orm import relationship, remote, foreign
 from .base import Base, TimeStampMixin
 
 class SleepSession(Base, TimeStampMixin):
@@ -24,7 +24,7 @@ class SleepSession(Base, TimeStampMixin):
     avg_spo2 = Column(Integer)
     avg_respiration = Column(Float)
     
-    # HRV 상세 정보 추가
+    # HRV 상세 정보
     hrv_weekly_avg = Column(Integer)
     hrv_last_night_avg = Column(Integer)
     hrv_last_night_5_min_high = Column(Integer)
@@ -39,10 +39,15 @@ class SleepSession(Base, TimeStampMixin):
 
     # 관계 설정
     movements = relationship("SleepMovement", back_populates="session")
-    hrv_readings = relationship("SleepHRVReading", 
-                              back_populates="session",
-                              primaryjoin="and_(SleepSession.user_id==SleepHRVReading.user_id, "
-                                        "cast(SleepSession.date as DateTime)==cast(SleepHRVReading.timestamp as Date))")
+    hrv_readings = relationship(
+        "SleepHRVReading", 
+        back_populates="session",
+        primaryjoin=lambda: and_(
+            SleepSession.user_id == remote(foreign(SleepHRVReading.user_id)),
+            func.date(SleepSession.date) == func.date(remote(SleepHRVReading.timestamp))
+        ),
+        uselist=True  # one-to-many 관계 명시
+    )
     user = relationship("User", backref="sleep_sessions")
     
     __table_args__ = (Index('idx_sleep_session_user_date', 'user_id', 'date'),)
@@ -79,9 +84,17 @@ class SleepHRVReading(Base):
     hrv_value = Column(Integer)
     
     # SleepSession과의 관계 설정
-    session = relationship("SleepSession", 
-                         back_populates="hrv_readings",
-                         foreign_keys=[user_id],
-                         primaryjoin="and_(SleepSession.user_id==SleepHRVReading.user_id, "
-                                   "cast(SleepSession.date as DateTime)==cast(SleepHRVReading.timestamp as Date))")
-    user = relationship("User", backref="sleep_hrv_readings") 
+    session = relationship(
+        "SleepSession", 
+        back_populates="hrv_readings",
+        primaryjoin=lambda: and_(
+            foreign(SleepHRVReading.user_id) == remote(SleepSession.user_id),
+            func.date(SleepHRVReading.timestamp) == func.date(remote(SleepSession.date))
+        ),
+        uselist=False  # many-to-one 관계 명시
+    )
+    user = relationship(
+        "User", 
+        backref="sleep_hrv_readings",
+        viewonly=True  # 읽기 전용으로 설정
+    ) 

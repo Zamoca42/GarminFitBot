@@ -15,9 +15,7 @@ dependencies = [
     "asyncpg (>=0.30.0,<0.31.0)",
     "psycopg2-binary (>=2.9.10,<3.0.0)",
     "alembic (>=1.14.1,<2.0.0)",
-    "cryptography (>=44.0.1,<45.0.0)",
 ]
-
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
