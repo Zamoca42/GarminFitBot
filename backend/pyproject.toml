@@ -17,10 +17,50 @@ dependencies = [
     "alembic (>=1.14.1,<2.0.0)",
 ]
 
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.setuptools]
+packages = ["api", "app", "core", "task", "migration"]
 
-[tool.poetry.scripts]
-dev = "uvicorn main:app --reload --host 0.0.0.0 --port 8000"
-start = "uvicorn main:app --host 0.0.0.0 --port 8000"
+[project.optional-dependencies]
+dev = ["ruff>=0.3.0", "mypy>=1.9.0", "black>=24.3.0", "isort>=5.13.0"]
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "B", # flake8-bugbear
+]
+ignore = ["B008", "B904"] # Depends와 Exception 관련 경고 무시
+
+[tool.mypy]
+python_version = "3.9"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_optional = true
+
+[tool.uvicorn]
+app = "main:app"
+host = "0.0.0.0"
+port = 8000
+reload = true
