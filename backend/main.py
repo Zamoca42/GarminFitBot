@@ -17,8 +17,11 @@ from app.service import (
     GarminTimeSeriesService,
 )
 from core.db import engine, get_session, init_db
-from core.fastapi.middleware.auth import AuthenticationMiddleware, GarminAuthBackend
-
+from core.fastapi.middleware import (
+    GarminAuthBackend,
+    SQLAlchemyMiddleware,
+)
+from starlette.middleware.authentication import AuthenticationMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,6 +50,7 @@ app.include_router(auth_router)
 app.include_router(profile_router)
 
 app.add_middleware(AuthenticationMiddleware, backend=GarminAuthBackend())
+app.add_middleware(SQLAlchemyMiddleware)
 
 
 @app.get(
@@ -145,13 +149,12 @@ async def get_activities(
     response_model=ResponseModel,
     response_model_exclude_none=True,
     summary="수면 HRV 요약 조회",
+    dependencies=[Depends(security)],
 )
-async def get_sleep_hrv(date: str, credentials=Depends(security)):
+async def get_sleep_hrv(date: str, request: Request):
     """수면 HRV 요약 조회"""
     try:
-        auth_manager = GarminAuthManager()
-        client = auth_manager.refresh_client_from_token(credentials.credentials)
-        summary_service = GarminSummaryService(client)
+        summary_service = GarminSummaryService(request.user.garmin_client)
         data = summary_service.get_sleep_hrv_summary(date)
         if not data:
             raise HTTPException(
@@ -174,14 +177,12 @@ async def get_sleep_hrv(date: str, credentials=Depends(security)):
     response_model=ResponseModel,
     response_model_exclude_none=True,
     summary="심박수 시계열 데이터 조회",
+    dependencies=[Depends(security)],
 )
-async def get_heart_rates(date: str, credentials=Depends(security)):
+async def get_heart_rates(date: str, request: Request):
     """심박수 시계열 데이터 조회"""
     try:
-        auth_manager = GarminAuthManager()
-        client = auth_manager.refresh_client_from_token(credentials.credentials)
-
-        time_series_service = GarminTimeSeriesService(client)
+        time_series_service = GarminTimeSeriesService(request.user.garmin_client)
         data = time_series_service.get_heart_rates(date)
         if not data:
             raise HTTPException(

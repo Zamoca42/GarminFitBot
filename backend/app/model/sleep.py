@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    BigInteger,
     Column,
     Date,
     DateTime,
@@ -18,8 +19,8 @@ from core.db import Base, TimeStampMixin
 class SleepSession(Base, TimeStampMixin):
     __tablename__ = "sleep_sessions"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False)
     start_time = Column(DateTime(timezone=True), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=False)
@@ -74,8 +75,8 @@ class SleepMovement(Base):
         {"postgresql_partition_by": "RANGE (timestamp)"},
     )
 
-    id = Column(Integer, primary_key=True)
-    sleep_session_id = Column(Integer, ForeignKey("sleep_sessions.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    sleep_session_id = Column(BigInteger, ForeignKey("sleep_sessions.id"), nullable=False)
     timestamp = Column(DateTime(timezone=True), primary_key=True)
     activity_level = Column(Integer)  # 0: 깊은수면, 1: 얕은수면, 2: REM, 3: 깨어있음
 
@@ -91,7 +92,7 @@ class SleepHRVReading(Base):
         {"postgresql_partition_by": "RANGE (timestamp)"},
     )
 
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime(timezone=True), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     hrv_value = Column(Integer)

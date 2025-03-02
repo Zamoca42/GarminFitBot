@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    BigInteger,
     Column,
     Date,
     DateTime,
@@ -17,8 +18,8 @@ from core.db import Base, TimeStampMixin
 class HeartRateDaily(Base, TimeStampMixin):
     __tablename__ = "heart_rate_daily"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False)
     resting_hr = Column(Integer)
     max_hr = Column(Integer)
@@ -49,8 +50,8 @@ class HeartRateReading(Base):
         {"postgresql_partition_by": "RANGE (timestamp)"},
     )
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     timestamp = Column(DateTime(timezone=True), primary_key=True)
     heart_rate = Column(Integer)
     hrv = Column(Integer)

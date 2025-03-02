@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     Column,
     Date,
@@ -17,8 +18,8 @@ from core.db import Base, TimeStampMixin
 class StressDaily(Base, TimeStampMixin):
     __tablename__ = "stress_daily"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False)
     avg_stress_level = Column(Integer)
     max_stress_level = Column(Integer)
@@ -49,8 +50,8 @@ class StressReading(Base):
         {"postgresql_partition_by": "RANGE (timestamp)"},
     )
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     timestamp = Column(DateTime(timezone=True), primary_key=True)
     stress_level = Column(Integer)
     body_battery = Column(Integer)

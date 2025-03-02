@@ -1,9 +1,9 @@
 from core.db.base_model import Base
 
-from .activity import Activity, ActivityLap
+from .activity import Activity
 from .analytics import Analytics
 from .heart_rate import HeartRateDaily, HeartRateReading
-from .sleep import SleepMovement, SleepSession
+from .sleep import SleepMovement, SleepSession, SleepHRVReading
 from .steps import StepsDaily, StepsIntraday
 from .stress import StressDaily, StressReading
 from .user import User
@@ -13,9 +13,9 @@ __all__ = [
     "User",
     "Analytics",
     "Activity",
-    "ActivityLap",
     "SleepSession",
     "SleepMovement",
+    "SleepHRVReading",
     "HeartRateDaily",
     "HeartRateReading",
     "StressDaily",

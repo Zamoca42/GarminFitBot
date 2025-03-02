@@ -91,8 +91,8 @@ class DailySummary(Data):
     # [층수]
     floors_ascended_in_meters: float
     floors_descended_in_meters: float
-    floors_ascended: int
-    floors_descended: int
+    floors_ascended: float
+    floors_descended: float
     user_floors_ascended_goal: int
 
     # [심박수]

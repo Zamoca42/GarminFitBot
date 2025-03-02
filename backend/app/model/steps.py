@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     Column,
     Date,
@@ -19,8 +20,8 @@ from core.db import Base, TimeStampMixin
 class StepsDaily(Base, TimeStampMixin):
     __tablename__ = "steps_daily"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False)
     total_steps = Column(Integer)
     goal_steps = Column(Integer)
@@ -52,8 +53,8 @@ class StepsIntraday(Base):
         {"postgresql_partition_by": "RANGE (start_time)"},
     )
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     start_time = Column(DateTime(timezone=True), primary_key=True)
     end_time = Column(DateTime(timezone=True), nullable=False)
     steps = Column(Integer)
