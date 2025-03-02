@@ -1,16 +1,15 @@
 from garth import Client as GarthClient
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.db import session
 from app.model import User
 
 
 class GarminAuthManager:
     """Garmin 인증 관리"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self):
         self.garth_client = GarthClient()
-        self.db = db
 
     async def login(self, email: str, password: str) -> GarthClient:
         """웹 로그인"""
@@ -23,7 +22,7 @@ class GarminAuthManager:
 
     async def get_user_info(self, client: GarthClient):
         """유저 정보 가져오기"""
-        result = await self.db.execute(
+        result = await session.execute(
             select(User).where(User.id == client.user_profile["profileId"])
         )
         return result.scalar_one_or_none()
@@ -48,15 +47,15 @@ class GarminAuthManager:
 
             if not user_info:
                 user_info = User(id=client.user_profile["profileId"], **user_data)
-                self.db.add(user_info)
+                session.add(user_info)
             else:
                 for key, value in user_data.items():
                     setattr(user_info, key, value)
 
-            await self.db.commit()
+            await session.commit()
             return user_info
 
         except Exception as e:
-            await self.db.rollback()
+            await session.rollback()
             print(f"Failed to save user: {e}")
             raise

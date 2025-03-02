@@ -11,6 +11,14 @@
 """
 
 from .base_model import Base, TimeStampMixin
-from .session import AsyncSession, engine, get_session, init_db
+from .session import AsyncSession, engine, get_session, init_db, session
 
-__all__ = ["Base", "TimeStampMixin", "AsyncSession", "engine", "get_session", "init_db"]
+__all__ = [
+    "Base",
+    "TimeStampMixin",
+    "AsyncSession",
+    "engine",
+    "get_session",
+    "init_db",
+    "session",
+]

@@ -6,17 +6,18 @@ from dotenv import load_dotenv
 # .env 파일 로드
 load_dotenv()
 
-# 환경변수 가져오기
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
-
 # 데이터베이스 설정
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT", "5432"))
-DB_NAME = os.getenv("DB_NAME", "garmin_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/garmin_db")
+SYNC_DATABASE_URL = os.getenv("SYNC_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/garmin_db")
+
+# RabbitMQ 설정
+BROKER_URL = os.getenv("BROKER_URL", "amqp://guest:guest@localhost:5672//")
+RESULT_BACKEND = os.getenv("RESULT_BACKEND", "rpc://")
+
+# JWT 설정
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 # 데이터베이스 풀 설정
 POOL_SIZE = int(os.getenv("POOL_SIZE", "5"))
@@ -24,18 +25,9 @@ MAX_OVERFLOW = int(os.getenv("MAX_OVERFLOW", "10"))
 POOL_TIMEOUT = int(os.getenv("POOL_TIMEOUT", "30"))
 POOL_RECYCLE = int(os.getenv("POOL_RECYCLE", "1800"))
 
-# 기존 비동기 URL
-DATABASE_URL = (
-    f"postgresql+asyncpg://"
-    f"{DB_USER}:{DB_PASSWORD}@"
-    f"{DB_HOST}:{DB_PORT}/"
-    f"{DB_NAME}"
-)
-
-# 마이그레이션용 동기 URL 추가
-SYNC_DATABASE_URL = (
-    f"postgresql://" f"{DB_USER}:{DB_PASSWORD}@" f"{DB_HOST}:{DB_PORT}/" f"{DB_NAME}"
-)
+# 기타 설정
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 # 로깅 설정
 logging.basicConfig(

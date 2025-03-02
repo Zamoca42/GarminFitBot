@@ -11,8 +11,8 @@ router = APIRouter(prefix="/auth", tags=["인증"])
 security = HTTPBearer()
 
 
-def get_auth_controller(db: AsyncSession = Depends(get_session)):
-    return AuthController(db)
+def get_auth_controller():
+    return AuthController()
 
 
 @router.post("/login", response_model=ResponseModel, summary="가민 계정 로그인")

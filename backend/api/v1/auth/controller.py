@@ -1,5 +1,4 @@
 from fastapi import HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.common.schema import ResponseModel
 from api.v1.auth.schema import LoginRequest
@@ -7,8 +6,8 @@ from app.service import GarminAuthManager, TokenService
 
 
 class AuthController:
-    def __init__(self, db: AsyncSession):
-        self.auth_service = GarminAuthManager(db)
+    def __init__(self):
+        self.auth_service = GarminAuthManager()
         self.token_service = TokenService()
 
     async def login(self, request: LoginRequest) -> ResponseModel:
