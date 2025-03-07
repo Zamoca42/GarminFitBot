@@ -10,4 +10,4 @@ Celery 작업 패키지
 
 from .celery_app import celery_app
 
-__all__ = ["celery_app"] 
+__all__ = ["celery_app"]

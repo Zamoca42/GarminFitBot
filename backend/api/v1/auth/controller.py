@@ -6,8 +6,8 @@ from app.service import GarminAuthManager, TokenService
 
 
 class AuthController:
-    def __init__(self):
-        self.auth_service = GarminAuthManager()
+    def __init__(self, auth_service: GarminAuthManager):
+        self.auth_service = auth_service
         self.token_service = TokenService()
 
     async def login(self, request: LoginRequest) -> ResponseModel:

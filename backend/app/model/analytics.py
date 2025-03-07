@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Date, ForeignKey, Index, Integer, String
+from sqlalchemy import BigInteger, Column, Date, ForeignKey, String
 from sqlalchemy.orm import relationship
 
 from core.db import Base, TimeStampMixin
@@ -20,5 +20,3 @@ class Analytics(Base, TimeStampMixin):
     all_comment = Column(String(255), nullable=True)
 
     user = relationship("User", backref="ai_analytics_comments")
-
-    __table_args__ = (Index("idx_analytics_user_date", "user_id", "date"),)

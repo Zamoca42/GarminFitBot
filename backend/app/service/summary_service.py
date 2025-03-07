@@ -116,3 +116,31 @@ class GarminSummaryService(BaseGarminService):
                 str(e),
             )
             return self._format_response(None, message="error")
+
+    def get_last_sync_time(self) -> dict:
+        """
+        마지막 동기화 시간 조회 (UTC)
+
+        returns:
+            dict: 마지막 동기화 시간 정보
+        """
+        endpoint_name = "마지막 동기화 시간"
+        logger.info("%s 조회", endpoint_name)
+
+        try:
+            response = self.client.connectapi(
+                "/wellness-service/wellness/syncTimestamp"
+            )
+
+            if response:
+                return self._format_response(
+                    {"last_utc_sync_time": response}, message="success"
+                )
+
+            return self._format_response(
+                {"last_utc_sync_time": None}, message="success"
+            )
+
+        except Exception as e:
+            logger.error("%s 조회 실패 - Error: %s", endpoint_name, str(e))
+            return self._format_response({"last_utc_sync_time": None}, message="error")

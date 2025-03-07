@@ -6,12 +6,10 @@ FastAPI 미들웨어 패키지
 - sqlalchemy: DB 세션 관리 미들웨어
 """
 
-from .auth import auth_middleware, GarminAuthBackend, GarminAuthUser
-from .sqlalchemy import SQLAlchemyMiddleware
+from .auth import GarminAuthBackend, GarminAuthUser, auth_middleware
 
 __all__ = [
     "auth_middleware",
     "GarminAuthBackend",
     "GarminAuthUser",
-    "SQLAlchemyMiddleware",
 ]

@@ -13,11 +13,11 @@ Garmin 서비스 모듈
 
 from ._base_service import BaseGarminService
 from .auth_manager import GarminAuthManager
-from .token_service import TokenService
-from .time_series_service import GarminTimeSeriesService
-from .summary_service import GarminSummaryService
-from .stats_service import GarminStatsService
 from .data_collector_service import GarminDataCollectorService
+from .stats_service import GarminStatsService
+from .summary_service import GarminSummaryService
+from .time_series_service import GarminTimeSeriesService
+from .token_service import TokenService
 
 __all__ = [
     "BaseGarminService",

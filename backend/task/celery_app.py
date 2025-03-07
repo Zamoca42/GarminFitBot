@@ -8,7 +8,7 @@ celery_app = Celery(
     "garmin_fit_bot",
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
-    include=["task.garmin_collector", "task.partition_manager"]
+    include=["task.garmin_collector", "task.partition_manager"],
 )
 
 # Celery 설정
@@ -53,4 +53,4 @@ celery_app.conf.beat_schedule = {
 }
 
 if __name__ == "__main__":
-    celery_app.start() 
+    celery_app.start()

@@ -3,7 +3,7 @@ from core.db.base_model import Base
 from .activity import Activity
 from .analytics import Analytics
 from .heart_rate import HeartRateDaily, HeartRateReading
-from .sleep import SleepMovement, SleepSession, SleepHRVReading
+from .sleep import SleepHRVReading, SleepMovement, SleepSession
 from .steps import StepsDaily, StepsIntraday
 from .stress import StressDaily, StressReading
 from .user import User

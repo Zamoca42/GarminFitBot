@@ -1,18 +1,24 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.common.schema import ResponseModel
 from api.v1.auth.controller import AuthController
 from api.v1.auth.schema import LoginRequest
-from core.db import get_session
+from app.service import GarminAuthManager
+from core.db import AsyncSession, get_session
 
 router = APIRouter(prefix="/auth", tags=["인증"])
 security = HTTPBearer()
 
 
-def get_auth_controller():
-    return AuthController()
+def get_auth_manager(session: AsyncSession = Depends(get_session)) -> GarminAuthManager:
+    return GarminAuthManager(session)
+
+
+def get_auth_controller(
+    auth_manager: GarminAuthManager = Depends(get_auth_manager),
+) -> AuthController:
+    return AuthController(auth_manager)
 
 
 @router.post("/login", response_model=ResponseModel, summary="가민 계정 로그인")

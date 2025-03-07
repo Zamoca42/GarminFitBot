@@ -11,7 +11,7 @@
 """
 
 from .base_model import Base, TimeStampMixin
-from .session import AsyncSession, engine, get_session, init_db, session
+from .session import AsyncSession, engine, get_session, init_db, transaction
 
 __all__ = [
     "Base",
@@ -20,5 +20,5 @@ __all__ = [
     "engine",
     "get_session",
     "init_db",
-    "session",
+    "transaction",
 ]

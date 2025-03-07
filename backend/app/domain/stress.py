@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from garth.data._base import Data
@@ -18,10 +18,18 @@ class StressDescriptor:
 class StressValue:
     """스트레스 측정값"""
 
-    time: datetime  # 측정 시간
+    timestamp: int
     stress_level: Optional[
         int
     ]  # 스트레스 레벨 (-2: 수면, -1: 측정불가, 0~100: 스트레스 수준)
+
+    @property
+    def start_time_gmt(self) -> datetime:
+        return datetime.fromtimestamp(self.timestamp / 1000, timezone.utc)
+
+    @property
+    def end_time_gmt(self) -> datetime:
+        return datetime.fromtimestamp(self.timestamp / 1000, timezone.utc)
 
 
 @dataclass(frozen=True)
@@ -33,10 +41,10 @@ class Stress(Data):
 
     # [날짜/시간]
     calendar_date: str
-    start_timestamp_gmt: str
-    end_timestamp_gmt: str
-    start_timestamp_local: str
-    end_timestamp_local: str
+    start_timestamp_gmt: datetime
+    end_timestamp_gmt: datetime
+    start_timestamp_local: datetime
+    end_timestamp_local: datetime
 
     # [스트레스 통계]
     max_stress_level: int
@@ -47,6 +55,10 @@ class Stress(Data):
     # [데이터 구조]
     stress_value_descriptors_dto_list: List[StressDescriptor]
     stress_values: List[StressValue]  # 변환된 측정값 목록
+
+    @property
+    def local_offset(self) -> int:
+        return (self.start_timestamp_local - self.start_timestamp_gmt).total_seconds()
 
     @classmethod
     def get(cls, date: str, *, client=None) -> Optional["Stress"]:
@@ -65,7 +77,7 @@ class Stress(Data):
         for timestamp, stress_level in data["stress_values_array"]:
             values.append(
                 StressValue(
-                    time=datetime.fromtimestamp(timestamp / 1000),
+                    timestamp=timestamp,
                     stress_level=int(stress_level),
                 )
             )

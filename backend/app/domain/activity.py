@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from garth.data._base import Data
@@ -165,6 +165,18 @@ class Activity(Data):
     summarized_dive_info: Optional[SummarizedDiveInfo] = None
     summarized_exercise_sets: Optional[List[SummarizedExerciseSet]] = None
     split_summaries: Optional[List[SplitSummary]] = None
+
+    @property
+    def start_time_utc(self) -> datetime:
+        """시작 시간 (UTC)"""
+        return self.start_time_gmt.replace(tzinfo=timezone.utc)
+
+    @property
+    def local_offset(self) -> float:
+        """로컬 시간과 GMT의 차이 (초)"""
+        gmt_timestamp = self.start_time_gmt.timestamp()
+        local_timestamp = self.start_time_local.timestamp()
+        return local_timestamp - gmt_timestamp
 
     @classmethod
     def get(cls, day: str, *, client=None) -> Optional["Activity"]:

@@ -1,9 +1,9 @@
 from logging.config import fileConfig
 
 from alembic import context
-from core.config import SYNC_DATABASE_URL  # 동기 URL 사용
 from sqlalchemy import engine_from_config, pool
 
+from core.config import SYNC_DATABASE_URL  # 동기 URL 사용
 from core.db import Base
 
 # this is the Alembic Config object, which provides

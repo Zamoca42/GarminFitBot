@@ -10,8 +10,10 @@ class Activity(Base, TimeStampMixin):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     activity_type = Column(String(50), nullable=False)
-    start_time = Column(DateTime(timezone=True), nullable=False)
-    end_time = Column(DateTime(timezone=True), nullable=False)
+    start_time_utc = Column(DateTime(timezone=True), nullable=False)
+    start_time_local = Column(DateTime(timezone=False), nullable=False)
+    end_time_utc = Column(DateTime(timezone=True), nullable=False)
+    end_time_local = Column(DateTime(timezone=False), nullable=False)
     distance = Column(Float)  # km
     duration_seconds = Column(Integer)
     calories = Column(Integer)

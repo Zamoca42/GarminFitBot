@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from garth.utils import camel_to_snake_dict
@@ -9,14 +9,24 @@ from pydantic.dataclasses import dataclass
 class StepsValue:
     """걸음수 측정값"""
 
-    start_gmt: datetime  # 시작 시간
-    end_gmt: datetime  # 종료 시간
-    steps: int  # 걸음수
+    start_gmt: datetime
+    end_gmt: datetime
+    steps: int
     pushes: int  # 휠체어 밀기 횟수
     primary_activity_level: (
         str  # 활동 수준 (sedentary, active, highlyActive, sleeping, generic)
     )
     activity_level_constant: bool  # 활동 수준 일정 여부
+
+    @property
+    def start_time_gmt(self) -> datetime:
+        """시작 시간 (UTC)"""
+        return self.start_gmt.replace(tzinfo=timezone.utc)
+
+    @property
+    def end_time_gmt(self) -> datetime:
+        """종료 시간 (UTC)"""
+        return self.end_gmt.replace(tzinfo=timezone.utc)
 
     @classmethod
     def get_readings(cls, date: str, *, client=None) -> Optional[List["StepsValue"]]:

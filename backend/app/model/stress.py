@@ -1,16 +1,13 @@
 from sqlalchemy import (
     BigInteger,
-    CheckConstraint,
     Column,
     Date,
     DateTime,
     ForeignKey,
-    Index,
     Integer,
-    and_,
-    func,
+    PrimaryKeyConstraint,
 )
-from sqlalchemy.orm import foreign, relationship, remote
+from sqlalchemy.orm import relationship
 
 from core.db import Base, TimeStampMixin
 
@@ -30,41 +27,27 @@ class StressDaily(Base, TimeStampMixin):
     readings = relationship(
         "StressReading",
         back_populates="daily_summary",
-        primaryjoin=lambda: and_(
-            StressDaily.user_id == remote(foreign(StressReading.user_id)),
-            func.date(StressDaily.date) == func.date(remote(StressReading.timestamp)),
-        ),
         uselist=True,
     )
 
     user = relationship("User", backref="stress_dailies")
-    __table_args__ = (Index("idx_stress_daily_user_date", "user_id", "date"),)
 
 
 class StressReading(Base):
     __tablename__ = "stress_readings"
     __table_args__ = (
-        Index("idx_stress_reading_user_time", "user_id", "timestamp"),
-        CheckConstraint("stress_level BETWEEN -2 AND 100", name="stress_level_range"),
-        CheckConstraint("body_battery BETWEEN 0 AND 100", name="body_battery_range"),
-        {"postgresql_partition_by": "RANGE (timestamp)"},
+        PrimaryKeyConstraint("daily_summary_id", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (start_time_local)"},
     )
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
-    timestamp = Column(DateTime(timezone=True), primary_key=True)
+    daily_summary_id = Column(BigInteger, ForeignKey("stress_daily.id"), nullable=False)
+    start_time_gmt = Column(DateTime(timezone=True), nullable=False)
+    start_time_local = Column(DateTime(timezone=False), nullable=False)
     stress_level = Column(Integer)
-    body_battery = Column(Integer)
 
     # 해당 측정값의 일일 요약과 관계 설정
     daily_summary = relationship(
         "StressDaily",
         back_populates="readings",
-        primaryjoin=lambda: and_(
-            foreign(StressReading.user_id) == remote(StressDaily.user_id),
-            func.date(StressReading.timestamp) == func.date(remote(StressDaily.date)),
-        ),
         uselist=False,
     )
-
-    user = relationship("User", backref="stress_readings", viewonly=True)

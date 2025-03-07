@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from garth.data._base import Data
@@ -18,8 +18,13 @@ class HeartRateDescriptor:
 class HeartRateValue:
     """심박수 측정값"""
 
-    time: datetime  # 측정 시간
+    timestamp: int
     heart_rate: Optional[int]  # 심박수 (bpm)
+
+    @property
+    def start_time_gmt(self) -> datetime:
+        """측정 시간 (UTC)"""
+        return datetime.fromtimestamp(self.timestamp / 1000, timezone.utc)
 
 
 @dataclass(frozen=True)
@@ -31,10 +36,10 @@ class HeartRate(Data):
 
     # [날짜/시간]
     calendar_date: str
-    start_timestamp_gmt: str
-    end_timestamp_gmt: str
-    start_timestamp_local: str
-    end_timestamp_local: str
+    start_timestamp_gmt: datetime
+    end_timestamp_gmt: datetime
+    start_timestamp_local: datetime
+    end_timestamp_local: datetime
 
     # [심박수 통계]
     max_heart_rate: int
@@ -45,6 +50,11 @@ class HeartRate(Data):
     # [데이터 구조]
     heart_rate_value_descriptors: List[HeartRateDescriptor]
     heart_rate_values: List[HeartRateValue]  # 변환된 측정값 목록
+
+    @property
+    def local_offset(self) -> float:
+        """로컬 시간과 GMT의 차이 (초)"""
+        return (self.start_timestamp_local - self.start_timestamp_gmt).total_seconds()
 
     @classmethod
     def get(cls, date: str, *, client=None) -> Optional["HeartRate"]:
@@ -63,12 +73,10 @@ class HeartRate(Data):
         values = []
         for timestamp, heart_rate in data["heart_rate_values"]:
             values.append(
-                {
-                    "time": datetime.fromtimestamp(timestamp / 1000).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                    "heart_rate": int(heart_rate) if heart_rate is not None else None,
-                }
+                HeartRateValue(
+                    timestamp=timestamp,
+                    heart_rate=int(heart_rate) if heart_rate is not None else None,
+                )
             )
         data["heart_rate_values"] = values
 

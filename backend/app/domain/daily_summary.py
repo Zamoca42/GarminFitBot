@@ -57,10 +57,10 @@ class DailySummary(Data):
 
     # [시간 정보]
     calendar_date: str
-    wellness_start_time_gmt: str
-    wellness_start_time_local: str
-    wellness_end_time_gmt: str
-    wellness_end_time_local: str
+    wellness_start_time_gmt: datetime
+    wellness_start_time_local: datetime
+    wellness_end_time_gmt: datetime
+    wellness_end_time_local: datetime
     duration_in_milliseconds: int
 
     # [칼로리]
@@ -181,6 +181,13 @@ class DailySummary(Data):
         BodyBatteryFeedbackEvent
     ] = None
     body_battery_activity_event_list: Optional[List[BodyBatteryActivityEvent]] = None
+
+    @property
+    def local_offset(self) -> int:
+        """로컬 오프셋"""
+        return (
+            self.wellness_start_time_local - self.wellness_start_time_gmt
+        ).total_seconds()
 
     @classmethod
     def get(cls, date: str, *, client=None) -> Optional["DailySummary"]:

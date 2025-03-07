@@ -5,13 +5,11 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
-    Index,
     Integer,
+    PrimaryKeyConstraint,
     String,
-    and_,
-    func,
 )
-from sqlalchemy.orm import foreign, relationship, remote
+from sqlalchemy.orm import relationship
 
 from core.db import Base, TimeStampMixin
 
@@ -22,8 +20,10 @@ class SleepSession(Base, TimeStampMixin):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     date = Column(Date, nullable=False)
-    start_time = Column(DateTime(timezone=True), nullable=False)
-    end_time = Column(DateTime(timezone=True), nullable=False)
+    start_time_gmt = Column(DateTime(timezone=True), nullable=False)
+    end_time_gmt = Column(DateTime(timezone=True), nullable=False)
+    start_time_local = Column(DateTime(timezone=False), nullable=False)
+    end_time_local = Column(DateTime(timezone=False), nullable=False)
 
     # 수면 단계별 시간
     total_seconds = Column(Integer)
@@ -52,35 +52,31 @@ class SleepSession(Base, TimeStampMixin):
     hrv_baseline_marker_value = Column(Float)
 
     # 관계 설정
-    movements = relationship("SleepMovement", back_populates="session")
+    movements = relationship("SleepMovement", back_populates="session", uselist=True)
     hrv_readings = relationship(
         "SleepHRVReading",
         back_populates="session",
-        primaryjoin=lambda: and_(
-            SleepSession.user_id == remote(foreign(SleepHRVReading.user_id)),
-            func.date(SleepSession.date)
-            == func.date(remote(SleepHRVReading.timestamp)),
-        ),
         uselist=True,  # one-to-many 관계 명시
     )
     user = relationship("User", backref="sleep_sessions")
-
-    __table_args__ = (Index("idx_sleep_session_user_date", "user_id", "date"),)
 
 
 class SleepMovement(Base):
     __tablename__ = "sleep_movement"
     __table_args__ = (
-        Index("idx_sleep_movement_time", "sleep_session_id", "timestamp"),
-        {"postgresql_partition_by": "RANGE (timestamp)"},
+        PrimaryKeyConstraint("sleep_session_id", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (start_time_local)"},
     )
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    sleep_session_id = Column(BigInteger, ForeignKey("sleep_sessions.id"), nullable=False)
-    timestamp = Column(DateTime(timezone=True), primary_key=True)
+    sleep_session_id = Column(
+        BigInteger, ForeignKey("sleep_sessions.id"), nullable=False
+    )
+    start_time_gmt = Column(DateTime(timezone=True), nullable=False)
+    start_time_local = Column(DateTime(timezone=False), nullable=False)
+    interval = Column(Integer)
     activity_level = Column(Integer)  # 0: 깊은수면, 1: 얕은수면, 2: REM, 3: 깨어있음
 
-    session = relationship("SleepSession", back_populates="movements")
+    session = relationship("SleepSession", back_populates="movements", uselist=False)
 
 
 class SleepHRVReading(Base):
@@ -88,26 +84,19 @@ class SleepHRVReading(Base):
 
     __tablename__ = "sleep_hrv_readings"
     __table_args__ = (
-        Index("idx_sleep_hrv_reading_user_time", "user_id", "timestamp"),
-        {"postgresql_partition_by": "RANGE (timestamp)"},
+        PrimaryKeyConstraint("sleep_session_id", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (start_time_local)"},
     )
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    timestamp = Column(DateTime(timezone=True), primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    sleep_session_id = Column(
+        BigInteger, ForeignKey("sleep_sessions.id"), nullable=False
+    )
+    start_time_gmt = Column(DateTime(timezone=True), nullable=False)
+    start_time_local = Column(DateTime(timezone=False), nullable=False)
     hrv_value = Column(Integer)
 
-    # SleepSession과의 관계 설정
     session = relationship(
         "SleepSession",
         back_populates="hrv_readings",
-        primaryjoin=lambda: and_(
-            foreign(SleepHRVReading.user_id) == remote(SleepSession.user_id),
-            func.date(SleepHRVReading.timestamp)
-            == func.date(remote(SleepSession.date)),
-        ),
         uselist=False,  # many-to-one 관계 명시
-    )
-    user = relationship(
-        "User", backref="sleep_hrv_readings", viewonly=True  # 읽기 전용으로 설정
     )

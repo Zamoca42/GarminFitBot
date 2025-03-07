@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase
 
-Base = declarative_base()
+
+class Base(AsyncAttrs, DeclarativeBase):
+    pass
 
 
 class TimeStampMixin:

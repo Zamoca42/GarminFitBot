@@ -6,6 +6,7 @@ from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.middleware.authentication import AuthenticationMiddleware
 
 from api.common.schema import ResponseModel
 from api.v1.auth.router import router as auth_router
@@ -19,9 +20,8 @@ from app.service import (
 from core.db import engine, get_session, init_db
 from core.fastapi.middleware import (
     GarminAuthBackend,
-    SQLAlchemyMiddleware,
 )
-from starlette.middleware.authentication import AuthenticationMiddleware
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,7 +50,35 @@ app.include_router(auth_router)
 app.include_router(profile_router)
 
 app.add_middleware(AuthenticationMiddleware, backend=GarminAuthBackend())
-app.add_middleware(SQLAlchemyMiddleware)
+
+
+@app.get(
+    "/summary/syncTime",
+    tags=["요약 데이터"],
+    response_model=ResponseModel,
+    response_model_exclude_none=True,
+    summary="마지막 동기화 시간",
+    description="마지막 동기화 시간을 조회합니다",
+    dependencies=[Depends(security)],
+)
+async def get_sync_time(request: Request):
+    """마지막 동기화 시간"""
+    try:
+        summary_service = GarminSummaryService(request.user.garmin_client)
+        data = summary_service.get_last_sync_time()
+        if not data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="해당 날짜의 데이터가 없습니다",
+            )
+        return data
+
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
+        )
 
 
 @app.get(
@@ -88,13 +116,12 @@ async def get_daily_summary(date: str, request: Request):
     response_model=ResponseModel,
     response_model_exclude_none=True,
     summary="수면 데이터 요약 조회",
+    dependencies=[Depends(security)],
 )
-async def get_sleep_summary(date: str, credentials=Depends(security)):
+async def get_sleep_summary(date: str, request: Request):
     """수면 데이터 요약 조회"""
     try:
-        auth_manager = GarminAuthManager()
-        client = auth_manager.refresh_client_from_token(credentials.credentials)
-        summary_service = GarminSummaryService(client)
+        summary_service = GarminSummaryService(request.user.garmin_client)
         data = summary_service.get_sleep_summary(date)
         if not data:
             raise HTTPException(
@@ -117,16 +144,12 @@ async def get_sleep_summary(date: str, credentials=Depends(security)):
     tags=["요약 데이터"],
     response_model=ResponseModel,
     summary="활동 목록 요약 조회",
+    dependencies=[Depends(security)],
 )
-async def get_activities(
-    limit: int = 20, start: int = 0, credentials=Depends(security)
-):
+async def get_activities(request: Request, limit: int = 20, start: int = 0):
     """활동 목록 요약 조회"""
     try:
-        auth_manager = GarminAuthManager()
-        client = auth_manager.refresh_client_from_token(credentials.credentials)
-
-        summary_service = GarminSummaryService(client)
+        summary_service = GarminSummaryService(request.user.garmin_client)
         data = summary_service.get_activities(limit, start)
         if not data:
             raise HTTPException(
@@ -205,14 +228,12 @@ async def get_heart_rates(date: str, request: Request):
     response_model=ResponseModel,
     response_model_exclude_none=True,
     summary="스트레스 시계열 데이터 조회",
+    dependencies=[Depends(security)],
 )
-async def get_stress_rates(date: str, credentials=Depends(security)):
+async def get_stress_rates(date: str, request: Request):
     """스트레스 시계열 데이터 조회"""
     try:
-        auth_manager = GarminAuthManager()
-        client = auth_manager.refresh_client_from_token(credentials.credentials)
-
-        time_series_service = GarminTimeSeriesService(client)
+        time_series_service = GarminTimeSeriesService(request.user.garmin_client)
         data = time_series_service.get_stress_rates(date)
         if not data:
             raise HTTPException(
@@ -235,14 +256,12 @@ async def get_stress_rates(date: str, credentials=Depends(security)):
     response_model=ResponseModel,
     response_model_exclude_none=True,
     summary="걸음수 시계열 데이터 조회",
+    dependencies=[Depends(security)],
 )
-async def get_steps_rates(date: str, credentials=Depends(security)):
+async def get_steps_rates(date: str, request: Request):
     """걸음수 시계열 데이터 조회"""
     try:
-        auth_manager = GarminAuthManager()
-        client = auth_manager.refresh_client_from_token(credentials.credentials)
-
-        time_series_service = GarminTimeSeriesService(client)
+        time_series_service = GarminTimeSeriesService(request.user.garmin_client)
         data = time_series_service.get_steps_rates(date)
         if not data:
             raise HTTPException(

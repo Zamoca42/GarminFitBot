@@ -7,8 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 데이터베이스 설정
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/garmin_db")
-SYNC_DATABASE_URL = os.getenv("SYNC_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/garmin_db")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/garmin_db"
+)
+SYNC_DATABASE_URL = os.getenv(
+    "SYNC_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/garmin_db"
+)
 
 # RabbitMQ 설정
 BROKER_URL = os.getenv("BROKER_URL", "amqp://guest:guest@localhost:5672//")

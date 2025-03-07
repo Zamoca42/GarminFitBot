@@ -1,18 +1,15 @@
 from sqlalchemy import (
     BigInteger,
-    CheckConstraint,
     Column,
     Date,
     DateTime,
     Float,
     ForeignKey,
-    Index,
     Integer,
+    PrimaryKeyConstraint,
     String,
-    and_,
-    func,
 )
-from sqlalchemy.orm import foreign, relationship, remote
+from sqlalchemy.orm import relationship
 
 from core.db import Base, TimeStampMixin
 
@@ -34,29 +31,24 @@ class StepsDaily(Base, TimeStampMixin):
     intraday_readings = relationship(
         "StepsIntraday",
         back_populates="daily_summary",
-        primaryjoin=lambda: and_(
-            StepsDaily.user_id == remote(foreign(StepsIntraday.user_id)),
-            func.date(StepsDaily.date) == func.date(remote(StepsIntraday.start_time)),
-        ),
         uselist=True,
     )
 
     user = relationship("User", backref="steps_dailies")
-    __table_args__ = (Index("idx_steps_daily_user_date", "user_id", "date"),)
 
 
 class StepsIntraday(Base):
     __tablename__ = "steps_intraday"
     __table_args__ = (
-        Index("idx_steps_intraday_user_time", "user_id", "start_time"),
-        CheckConstraint("intensity BETWEEN 0 AND 10", name="intensity_range"),
-        {"postgresql_partition_by": "RANGE (start_time)"},
+        PrimaryKeyConstraint("daily_summary_id", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (start_time_local)"},
     )
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
-    start_time = Column(DateTime(timezone=True), primary_key=True)
-    end_time = Column(DateTime(timezone=True), nullable=False)
+    daily_summary_id = Column(BigInteger, ForeignKey("steps_daily.id"), nullable=False)
+    start_time_gmt = Column(DateTime(timezone=True), nullable=False)
+    end_time_gmt = Column(DateTime(timezone=True), nullable=False)
+    start_time_local = Column(DateTime(timezone=False), nullable=False)
+    end_time_local = Column(DateTime(timezone=False), nullable=False)
     steps = Column(Integer)
     activity_level = Column(String(20))
     intensity = Column(Integer)
@@ -65,11 +57,5 @@ class StepsIntraday(Base):
     daily_summary = relationship(
         "StepsDaily",
         back_populates="intraday_readings",
-        primaryjoin=lambda: and_(
-            foreign(StepsIntraday.user_id) == remote(StepsDaily.user_id),
-            func.date(StepsIntraday.start_time) == func.date(remote(StepsDaily.date)),
-        ),
         uselist=False,
     )
-
-    user = relationship("User", backref="steps_intraday", viewonly=True)
