@@ -1,0 +1,4 @@
+{
+  "builds": [{ "src": "src/**/*", "use": "@vercel/static" }],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD backend/"
+}
