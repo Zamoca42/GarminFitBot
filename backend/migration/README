@@ -1,0 +1,26 @@
+Generic single-database configuration.
+
+# 변경사항을 감지하여 새로운 마이그레이션 생성
+```bash
+alembic revision --autogenerate -m "마이그레이션 설명"
+```
+
+# 마이그레이션 적용
+```bash
+alembic upgrade head
+```
+
+# 마이그레이션 롤백
+```bash
+alembic downgrade -1
+```
+
+# 현재 상태 확인
+```bash
+alembic current
+```
+
+# 마이그레이션 히스토리 확인
+```bash
+alembic history
+```
