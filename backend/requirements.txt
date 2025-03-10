@@ -3,7 +3,6 @@ amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.8.0
 asyncpg==0.30.0
--e file:///Users/zamoca/dev/work/GarminFitBot/backend
 billiard==4.2.1
 black==25.1.0
 celery==5.4.0

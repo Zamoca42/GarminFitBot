@@ -6,6 +6,7 @@ from .heart_rate import HeartRateDaily, HeartRateReading
 from .sleep import SleepHRVReading, SleepMovement, SleepSession
 from .steps import StepsDaily, StepsIntraday
 from .stress import StressDaily, StressReading
+from .temp_token import TempClientToken
 from .user import User
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "StressReading",
     "StepsDaily",
     "StepsIntraday",
+    "TempClientToken",
 ]

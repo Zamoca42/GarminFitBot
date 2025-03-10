@@ -1,14 +1,21 @@
 from fastapi import HTTPException, Request, status
 
 from api.common.schema import ResponseModel
-from api.v1.auth.schema import LoginRequest
-from app.service import GarminAuthManager, TokenService
+from api.v1.auth.schema import KakaoRequest, KakaoResponse, LoginRequest, SignupRequest
+from app.service import GarminAuthManager, TempTokenService, TokenService
+from core.config import FRONTEND_URL
 
 
 class AuthController:
-    def __init__(self, auth_service: GarminAuthManager):
+    def __init__(
+        self,
+        auth_service: GarminAuthManager,
+        token_service: TokenService,
+        temp_token_service: TempTokenService,
+    ):
         self.auth_service = auth_service
-        self.token_service = TokenService()
+        self.token_service = token_service
+        self.temp_token_service = temp_token_service
 
     async def login(self, request: LoginRequest) -> ResponseModel:
         try:
@@ -39,3 +46,65 @@ class AuthController:
 
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+    async def handle_kakao_signup(self, request: KakaoRequest) -> KakaoResponse:
+        try:
+            user_key = request.userRequest.user.id
+            await self.temp_token_service.create_signup_token(user_key)
+            signup_url = f"{FRONTEND_URL}/signup/{user_key}"
+
+            return KakaoResponse(
+                template={
+                    "outputs": [
+                        {
+                            "simpleText": {
+                                "text": f"아래 링크를 통해 회원가입을 진행해주세요:\n{signup_url}"
+                            }
+                        }
+                    ]
+                }
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            )
+
+    async def verify_client(self, client_id: str) -> ResponseModel:
+        try:
+            is_valid = await self.temp_token_service.verify_signup_token(client_id)
+            if not is_valid:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="유효하지 않은 접근입니다.",
+                )
+            return ResponseModel(message="검증 성공", data={"is_valid": True})
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    async def signup(self, request: SignupRequest) -> ResponseModel:
+        try:
+            is_valid = await self.temp_token_service.verify_signup_token(
+                request.client_id
+            )
+            if not is_valid:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="유효하지 않은 접근입니다.",
+                )
+            await self.temp_token_service.delete_signup_token(request.client_id)
+
+            client = await self.auth_service.login(request.garmin_id, request.password)
+
+            if isinstance(client, dict):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="MFA가 필요한 계정은 등록할 수 없습니다.",
+                )
+
+            await self.auth_service.save_login_user(
+                client, kakao_client_id=request.client_id
+            )
+
+            return ResponseModel(message="회원가입 성공")
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

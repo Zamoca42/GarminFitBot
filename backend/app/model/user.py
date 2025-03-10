@@ -13,3 +13,4 @@ class User(Base, TimeStampMixin):
     oauth_token = Column(Text, nullable=False)
     oauth_token_secret = Column(Text, nullable=False)
     domain = Column(String(255), nullable=True)
+    kakao_client_id = Column(String(255), nullable=True)

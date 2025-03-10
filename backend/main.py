@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -17,6 +18,7 @@ from app.service import (
     GarminSummaryService,
     GarminTimeSeriesService,
 )
+from core.config import CORS_ORIGINS
 from core.db import engine, get_session, init_db
 from core.fastapi.middleware import (
     GarminAuthBackend,
@@ -36,6 +38,16 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 security = HTTPBearer()
 
 

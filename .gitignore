@@ -187,9 +187,6 @@ dist
 
 # Optional stylelint cache
 
-# SvelteKit build / generate output
-.svelte-kit
-
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -358,16 +355,6 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
-
-### Svelte ###
-# gitignore template for the SvelteKit, frontend web component framework
-# website: https://kit.svelte.dev/
-
-.svelte-kit/
-package
-
-### Vercel ###
-.vercel
 
 # Grafana data
 grafana-data/
