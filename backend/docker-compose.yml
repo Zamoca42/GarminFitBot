@@ -3,7 +3,7 @@ version: "3.8"
 services:
   api:
     build:
-      context: ./backend
+      context: .
       dockerfile: docker/Dockerfile
     ports:
       - "8000:8000"
@@ -14,7 +14,7 @@ services:
 
   celery_worker:
     build:
-      context: ./backend
+      context: .
       dockerfile: docker/Dockerfile.celery
     env_file:
       - .env
@@ -23,7 +23,7 @@ services:
 
   celery_beat:
     build:
-      context: ./backend
+      context: .
       dockerfile: docker/Dockerfile.celery
     command: celery -A task.celery_app beat --loglevel=info
     env_file:
@@ -33,7 +33,7 @@ services:
 
   flower:
     build:
-      context: ./backend
+      context: .
       dockerfile: docker/Dockerfile.celery
     command: celery -A task.celery_app flower --port=5555
     ports:
