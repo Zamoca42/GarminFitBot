@@ -1,10 +1,11 @@
 import logging
 import os
+from typing import List
 
 from dotenv import load_dotenv
 
 # .env 파일 로드
-load_dotenv()
+load_dotenv(override=True)
 
 # 데이터베이스 설정
 DATABASE_URL = os.getenv(
@@ -32,6 +33,16 @@ POOL_RECYCLE = int(os.getenv("POOL_RECYCLE", "1800"))
 # 기타 설정
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+# 프론트엔드 설정
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# CORS 설정
+CORS_ORIGINS: List[str] = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://garmin-fit-bot.vercel.app",
+]
 
 # 로깅 설정
 logging.basicConfig(

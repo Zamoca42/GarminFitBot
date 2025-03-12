@@ -17,12 +17,13 @@ from .data_collector_service import GarminDataCollectorService
 from .stats_service import GarminStatsService
 from .summary_service import GarminSummaryService
 from .time_series_service import GarminTimeSeriesService
-from .token_service import TokenService
+from .token_service import TempTokenService, TokenService
 
 __all__ = [
     "BaseGarminService",
     "GarminAuthManager",
     "TokenService",
+    "TempTokenService",
     "GarminTimeSeriesService",
     "GarminSummaryService",
     "GarminStatsService",

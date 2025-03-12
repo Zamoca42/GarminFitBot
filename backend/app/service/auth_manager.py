@@ -28,11 +28,12 @@ class GarminAuthManager:
         )
         return result.scalar_one_or_none()
 
-    async def save_login_user(self, client: GarthClient):
+    async def save_login_user(
+        self, client: GarthClient, kakao_client_id: str | None = None
+    ):
         """DB에 저장 또는 업데이트"""
         try:
             user_info = await self.get_user_info(client)
-
             user_data = {
                 "email": client.user_profile["userName"],
                 "display_name": client.user_profile["displayName"],
@@ -45,6 +46,9 @@ class GarminAuthManager:
                     else None
                 ),
             }
+
+            if kakao_client_id:
+                user_data["kakao_client_id"] = kakao_client_id
 
             if not user_info:
                 user_info = User(id=client.user_profile["profileId"], **user_data)

@@ -29,6 +29,7 @@ class TimeSeriesPartitionManager:
         "steps_intraday",
         "stress_daily",
         "stress_readings",
+        "temp_client_tokens",
     ]
 
     def __init__(self, session: AsyncSession):
