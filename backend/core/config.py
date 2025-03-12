@@ -5,7 +5,7 @@ from typing import List
 from dotenv import load_dotenv
 
 # .env 파일 로드
-load_dotenv(override=True)
+load_dotenv(".env", override=True)
 
 # 데이터베이스 설정
 DATABASE_URL = os.getenv(

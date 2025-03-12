@@ -72,7 +72,7 @@ if __name__ == "__main__":
             asyncio.run(drop_all_tables())
         elif sys.argv[1] == "test-broker":
             # RabbitMQ 연결 테스트
-            from test_rabbitmq import test_rabbitmq_connection
+            from backend.script.test_rabbitmq import test_rabbitmq_connection
 
             test_rabbitmq_connection()
     else:
