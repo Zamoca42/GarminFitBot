@@ -16,7 +16,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy backend files to EC2
+      - name: Setup deployment directory
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
@@ -27,6 +27,15 @@ jobs:
           echo "$EC2_SSH_KEY" > ~/.ssh/ec2.key
           chmod 600 ~/.ssh/ec2.key
           
+          # EC2에 필요한 디렉토리 생성 (없는 경우에만)
+          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "[ ! -d /home/$EC2_USERNAME/app/backend ] && mkdir -p /home/$EC2_USERNAME/app/backend || echo 'Directory already exists'"
+
+      - name: Copy backend files to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
           # 백엔드 파일 전송
           rsync -avz -e "ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no" \
             --exclude='.venv' \
