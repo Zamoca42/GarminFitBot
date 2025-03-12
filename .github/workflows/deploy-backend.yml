@@ -52,8 +52,9 @@ jobs:
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST << 'ENDSSH'
-            cd /home/$EC2_USERNAME/app/backend
+          DEPLOY_PATH="/home/$EC2_USERNAME/app/backend"
+          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST << ENDSSH
+            cd ${DEPLOY_PATH}
             docker-compose down --volumes --remove-orphans || true
             docker-compose build
             docker-compose up -d
