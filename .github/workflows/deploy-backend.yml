@@ -56,10 +56,10 @@ jobs:
             cd /home/$EC2_USERNAME/app/backend
             
             # Docker 서비스 재시작
-            make docker-down
-            make docker-build
-            make docker-up -d
+            docker compose down --rmi all --volumes --remove-orphans
+            docker compose build
+            docker compose up -d
             
             # 로그 확인
-            make docker-logs
+            docker compose logs -f
           EOF 
