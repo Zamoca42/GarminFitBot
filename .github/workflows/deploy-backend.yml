@@ -27,8 +27,8 @@ jobs:
           echo "$EC2_SSH_KEY" > ~/.ssh/ec2.key
           chmod 600 ~/.ssh/ec2.key
           
-          # EC2에 필요한 디렉토리 생성 (없는 경우에만)
-          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "[ ! -d /home/$EC2_USERNAME/app/backend ] && mkdir -p /home/$EC2_USERNAME/app/backend || echo 'Directory already exists'"
+          # EC2에 필요한 디렉토리 생성
+          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "mkdir -p /home/$EC2_USERNAME/app/backend"
 
       - name: Copy backend files to EC2
         env:
@@ -52,14 +52,11 @@ jobs:
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST << 'EOF'
+          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST << 'ENDSSH'
             cd /home/$EC2_USERNAME/app/backend
-            
-            # Docker 서비스 재시작
-            docker compose down --rmi all --volumes --remove-orphans
-            docker compose build
-            docker compose up -d
-            
-            # 로그 확인
-            docker compose logs -f
-          EOF 
+            docker-compose down --volumes --remove-orphans || true
+            docker-compose build
+            docker-compose up -d
+            sleep 5  # 서비스가 시작될 때까지 잠시 대기
+            docker-compose ps  # 서비스 상태 확인
+          ENDSSH
