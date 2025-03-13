@@ -10,7 +10,6 @@ from .kakao_request import (
 from .kakao_response import (
     Button,
     KakaoResponse,
-    Output,
     SimpleText,
     Template,
     TextCard,
@@ -30,6 +29,5 @@ __all__ = [
     "SimpleText",
     "TextCard",
     "Button",
-    "Output",
     "Template",
 ]

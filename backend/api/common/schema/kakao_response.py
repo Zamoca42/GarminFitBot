@@ -1,6 +1,6 @@
-from typing import List, Optional
+from typing import Dict, List, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SimpleText(BaseModel):
@@ -19,13 +19,8 @@ class TextCard(BaseModel):
     buttons: List[Button]
 
 
-class Output(BaseModel):
-    simpleText: Optional[SimpleText] = None
-    textCard: Optional[TextCard] = None
-
-
 class Template(BaseModel):
-    outputs: List[Output]
+    outputs: List[Dict[str, Union[SimpleText, TextCard]]]
 
 
 class KakaoResponse(BaseModel):
