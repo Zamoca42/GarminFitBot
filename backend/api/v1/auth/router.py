@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPBearer
 
-from api.common.schema import ResponseModel
+from api.common.schema import KakaoRequest, ResponseModel
 from api.v1.auth.controller import AuthController
-from api.v1.auth.schema import KakaoRequest, LoginRequest, SignupRequest
+from api.v1.auth.schema import LoginRequest, SignupRequest
 from app.service import GarminAuthManager, TempTokenService, TokenService
 from core.db import AsyncSession, get_session
 
@@ -74,7 +74,11 @@ async def verify_client(
     return await controller.verify_client(client_id)
 
 
-@router.post("/signup", response_model=ResponseModel, summary="회원가입")
+@router.post(
+    "/signup",
+    response_model=ResponseModel,
+    summary="클라이언트 페이지에서 가민 계정으로 서비스 연결",
+)
 async def signup(
     request: SignupRequest, controller: AuthController = Depends(get_auth_controller)
 ):

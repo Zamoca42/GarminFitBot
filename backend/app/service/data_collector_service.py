@@ -21,13 +21,15 @@ from app.model import (
     HeartRateDaily,
     HeartRateReading,
     SleepHRVReading,
+)
+from app.model import SleepMovement as SleepMovementModel
+from app.model import (
     SleepSession,
     StepsDaily,
     StepsIntraday,
     StressDaily,
     StressReading,
 )
-from app.model import SleepMovement as SleepMovementModel
 from app.service._base_service import BaseGarminService
 
 logger = logging.getLogger(__name__)
