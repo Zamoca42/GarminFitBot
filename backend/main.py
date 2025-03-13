@@ -22,6 +22,7 @@ from core.config import CORS_ORIGINS
 from core.db import engine, get_session, init_db
 from core.fastapi.middleware import (
     GarminAuthBackend,
+    KakaoBotMiddleware,
 )
 
 
@@ -47,6 +48,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(KakaoBotMiddleware)
 
 security = HTTPBearer()
 

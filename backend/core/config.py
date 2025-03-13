@@ -22,7 +22,9 @@ RESULT_BACKEND = os.getenv("RESULT_BACKEND", "rpc://")
 # JWT 설정
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+# 카카오톡 설정
+KAKAO_BOT_ID = os.getenv("KAKAO_BOT_ID", "1234567890")
 
 # 데이터베이스 풀 설정
 POOL_SIZE = int(os.getenv("POOL_SIZE", "5"))
@@ -42,6 +44,7 @@ CORS_ORIGINS: List[str] = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://garmin-fit-bot.vercel.app",
+    "https://fit-bot.click",
 ]
 
 # 로깅 설정
