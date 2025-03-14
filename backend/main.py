@@ -11,6 +11,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 
 from api.common.schema import ResponseModel
 from api.v1.auth.router import router as auth_router
+from api.v1.data.router import router as data_router
 from api.v1.profile.router import router as profile_router
 from app.service import (
     GarminAuthManager,
@@ -23,6 +24,7 @@ from core.db import engine, get_session, init_db
 from core.fastapi.middleware import (
     GarminAuthBackend,
     KakaoBotMiddleware,
+    KakaoUserMiddleware,
 )
 
 
@@ -49,7 +51,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 카카오톡 미들웨어 등록
 app.add_middleware(KakaoBotMiddleware)
+app.add_middleware(KakaoUserMiddleware)
 
 security = HTTPBearer()
 
@@ -63,6 +67,7 @@ class HealthResponse(BaseModel):
 
 app.include_router(auth_router)
 app.include_router(profile_router)
+app.include_router(data_router)
 
 app.add_middleware(AuthenticationMiddleware, backend=GarminAuthBackend())
 

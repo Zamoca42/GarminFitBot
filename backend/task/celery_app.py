@@ -1,4 +1,4 @@
-from celery import Celery
+from celery import Celery, Task
 from celery.schedules import crontab
 
 from core.config import BROKER_URL, RESULT_BACKEND
@@ -8,7 +8,6 @@ celery_app = Celery(
     "garmin_fit_bot",
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
-    include=["task.partition_manager"],
 )
 
 # Celery 설정
@@ -31,6 +30,3 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(day_of_month=20, hour=2, minute=0),
     },
 }
-
-if __name__ == "__main__":
-    celery_app.start()

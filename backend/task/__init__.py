@@ -9,5 +9,7 @@ Celery 작업 패키지
 """
 
 from .celery_app import celery_app
+from .garmin_collector import collect_user_fit_data
+from .partition_manager import manage_partitions
 
-__all__ = ["celery_app"]
+__all__ = ["celery_app", "collect_user_fit_data", "manage_partitions"]

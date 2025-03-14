@@ -1,97 +1,175 @@
 import logging
-from datetime import datetime, timedelta
+import traceback
+from datetime import datetime, timezone
+from typing import Optional
 
-from celery import shared_task
+import pytz
+from celery import states
 from sqlalchemy import select
 
 from app.model import User
 from app.service import GarminDataCollectorService, TokenService
-from core.db import AsyncSession
-from task.base import with_db_context
+from core.db import DatabaseTask
+from task.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name="collect_garmin_data")
-@with_db_context
-async def collect_garmin_data(session: AsyncSession, days_back: int = 0):
-    """
-    모든 사용자의 Garmin 데이터 수집
+class GarminDataCollectionTask(DatabaseTask):
+    """Garmin 데이터 수집 태스크"""
 
-    Args:
-        session: DB 세션
-        days_back: 오늘로부터 며칠 전 데이터를 수집할지 (기본값: 0, 오늘)
-    """
-    logger.info(f"모든 사용자의 Garmin 데이터 수집 시작 (days_back: {days_back})")
+    name = "collect_user_fit_data"
+    expires = 86400
 
-    # 수집할 날짜 계산
-    target_date = datetime.now().date() - timedelta(days=days_back)
+    def run(self, kakao_user_id: str, target_date: str, user_timezone: str):
+        """메인 실행 메서드"""
+        logger.info(f"사용자 {kakao_user_id}의 Garmin 데이터 수집 시작")
 
-    try:
-        # 모든 사용자 조회
-        result = await session.execute(select(User))
-        users = result.scalars().all()
+        try:
+            user = self._get_user(kakao_user_id)
+            garmin_client = self._create_garmin_client(user)
+            self._validate_sync_time(garmin_client, target_date, user_timezone)
+            result = self._collect_data(garmin_client, user.id, target_date)
+            return result
+        except Exception as e:
+            self._handle_error(e, kakao_user_id)
+            raise
 
-        logger.info(f"총 {len(users)}명의 사용자 데이터 수집 예정")
-
-        # 각 사용자별 데이터 수집
-        for user in users:
-            await collect_user_data(user.id, target_date)
-
-        logger.info(f"모든 사용자의 {target_date} 데이터 수집 완료")
-        return {
-            "status": "success",
-            "date": str(target_date),
-            "users_count": len(users),
-        }
-
-    except Exception as e:
-        logger.error(f"데이터 수집 중 오류 발생: {str(e)}")
-        return {"status": "error", "message": str(e)}
-
-
-@with_db_context
-async def collect_user_data(
-    session: AsyncSession, user_id: int, target_date: datetime.date
-):
-    """
-    특정 사용자의 특정 날짜 데이터 수집
-
-    Args:
-        user_id: 사용자 ID
-        target_date: 수집할 날짜
-    """
-    logger.info(f"사용자 {user_id}의 {target_date} 데이터 수집 시작")
-
-    try:
-        # 사용자 정보 조회
-        result = await session.execute(select(User).where(User.id == user_id))
+    def _get_user(self, kakao_user_id: str) -> User:
+        """사용자 정보 조회"""
+        result = self.session.execute(
+            select(User).where(User.kakao_client_id == kakao_user_id)
+        )
         user = result.scalar_one_or_none()
 
         if not user:
-            logger.warning(f"사용자 {user_id}를 찾을 수 없음")
-            return
+            logger.warning(
+                f"카카오톡 유저 ID {kakao_user_id}에 해당하는 사용자를 찾을 수 없음"
+            )
+            error_response = {
+                "status": "error",
+                "message": "사용자를 찾을 수 없습니다.",
+            }
+            raise Exception(error_response)
 
-        # Garmin 클라이언트 생성
+        return user
+
+    def _create_garmin_client(self, user: User):
+        """Garmin 클라이언트 생성"""
         token_service = TokenService()
         oauth1_token = {
             "oauth_token": user.oauth_token,
             "oauth_token_secret": user.oauth_token_secret,
             "domain": user.domain,
         }
-        garmin_client = token_service.create_garmin_client(oauth1_token)
+        return token_service.create_garmin_client(oauth1_token)
 
-        # 데이터 수집 서비스 초기화
+    def _validate_sync_time(
+        self, garmin_client, target_date: str, user_timezone: str
+    ) -> None:
+        """동기화 시간 검증"""
+        last_sync_time_utc = self._get_last_sync_time(garmin_client)
+        user_tz = self._get_user_timezone(user_timezone)
+        target_datetime_local = self._parse_target_date(target_date, user_tz)
+        last_sync_time_local = last_sync_time_utc.astimezone(user_tz)
+
+        if last_sync_time_local.date() < target_datetime_local.date():
+            self._handle_sync_time_error(last_sync_time_local, target_datetime_local)
+
+    def _get_last_sync_time(self, garmin_client) -> datetime:
+        """마지막 동기화 시간 조회"""
+        get_last_sync_time = garmin_client.connectapi(
+            "/wellness-service/wellness/syncTimestamp"
+        )
+        last_sync_time_utc = datetime.strptime(
+            get_last_sync_time, "%Y-%m-%dT%H:%M:%S.%f"
+        )
+        return last_sync_time_utc.replace(tzinfo=timezone.utc)
+
+    def _get_user_timezone(self, user_timezone: str) -> pytz.timezone:
+        """사용자 시간대 조회"""
+        try:
+            return pytz.timezone(user_timezone)
+        except pytz.exceptions.UnknownTimeZoneError:
+            logger.error(f"알 수 없는 시간대: {user_timezone}")
+            error_response = {
+                "status": "error",
+                "message": f"알 수 없는 시간대입니다: {user_timezone}",
+            }
+            raise Exception(error_response)
+
+    def _parse_target_date(
+        self, target_date: str, user_tz: pytz.timezone
+    ) -> datetime:
+        """목표 날짜 파싱"""
+        target_datetime_local = datetime.strptime(target_date, "%Y-%m-%d")
+        return user_tz.localize(target_datetime_local)
+
+    def _handle_sync_time_error(
+        self, last_sync_time_local: datetime, target_datetime_local: datetime
+    ) -> None:
+        """동기화 시간 오류 처리"""
+        logger.warning(
+            f"마지막 동기화 시간(로컬: {last_sync_time_local})이 요청된 날짜({target_datetime_local.date()})보다 이전입니다."
+        )
+        error_response = {
+            "status": "error",
+            "message": "마지막 동기화 시간이 요청된 날짜보다 이전입니다.",
+            "last_sync_time_local": last_sync_time_local.strftime(
+                "%Y-%m-%d %H:%M:%S %z"
+            ),
+            "target_date_local": target_datetime_local.strftime(
+                "%Y-%m-%d %H:%M:%S %z"
+            ),
+        }
+        raise Exception(error_response)
+
+    def _collect_data(
+        self, garmin_client, user_id: int, target_date: str
+    ) -> Optional[dict]:
+        """데이터 수집"""
         collector_service = GarminDataCollectorService(
-            client=garmin_client, session=session
+            client=garmin_client, session=self.session
         )
 
-        # 데이터 수집 실행
-        result = await collector_service.collect_daily_data(user_id, target_date)
+        target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
 
-        logger.info(f"사용자 {user_id}의 {target_date} 데이터 수집 완료")
-        return result
+        try:
+            result = collector_service.collect_daily_data(user_id, target_date)
 
-    except Exception as e:
-        logger.error(f"사용자 {user_id}의 데이터 수집 중 오류 발생: {str(e)}")
-        raise
+            if not result:
+                error_response = {
+                    "status": "error",
+                    "message": "데이터를 수집할 수 없습니다.",
+                }
+                raise Exception(error_response)
+
+            logger.info(f"사용자 {user_id}의 {target_date} 데이터 수집 완료")
+            return result
+
+        except Exception as e:
+            logger.error(f"데이터 수집 중 오류 발생: {str(e)}")
+            self.update_state(
+                state=states.FAILURE,
+                meta={
+                    "exc_type": type(e).__name__,
+                    "exc_message": str(e),
+                    "traceback": traceback.format_exc(),
+                },
+            )
+            raise e
+
+    def _handle_error(self, error: Exception, kakao_user_id: str) -> None:
+        """오류 처리"""
+        logger.error(f"사용자 {kakao_user_id}의 데이터 수집 중 오류 발생: {str(error)}")
+        self.update_state(
+            state=states.FAILURE,
+            meta={
+                "exc_type": type(error).__name__,
+                "exc_message": str(error),
+                "traceback": traceback.format_exc(),
+            },
+        )
+
+
+collect_user_fit_data = celery_app.register_task(GarminDataCollectionTask())

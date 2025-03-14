@@ -12,8 +12,8 @@ class BodyBatteryFeedbackEvent:
 
     event_timestamp_gmt: datetime
     body_battery_level: str
-    feedback_short_type: str
-    feedback_long_type: str
+    feedback_short_type: Optional[str] = None
+    feedback_long_type: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -109,15 +109,12 @@ class DailySummary(Data):
     stress_duration: int
     rest_stress_duration: int
     activity_stress_duration: int
-    uncategorized_stress_duration: int
     total_stress_duration: int
     low_stress_duration: int
     medium_stress_duration: int
-    high_stress_duration: int
     stress_percentage: float
     rest_stress_percentage: float
     activity_stress_percentage: float
-    uncategorized_stress_percentage: float
     low_stress_percentage: float
     medium_stress_percentage: float
     high_stress_percentage: float
@@ -174,6 +171,10 @@ class DailySummary(Data):
     # [기타]
     average_monitoring_environment_altitude: Optional[float] = None
     resting_calories_from_activity: Optional[int] = None
+
+    # [스트레스]
+    uncategorized_stress_duration: Optional[int] = None
+    high_stress_duration: Optional[int] = None
 
     # [바디 배터리 이벤트]
     body_battery_dynamic_feedback_event: Optional[BodyBatteryFeedbackEvent] = None
