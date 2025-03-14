@@ -18,7 +18,9 @@ class SleepSession(Base, TimeStampMixin):
     __tablename__ = "sleep_sessions"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     date = Column(Date, nullable=False)
     start_time_gmt = Column(DateTime(timezone=True), nullable=False)
     end_time_gmt = Column(DateTime(timezone=True), nullable=False)
@@ -52,13 +54,19 @@ class SleepSession(Base, TimeStampMixin):
     hrv_baseline_marker_value = Column(Float)
 
     # 관계 설정
-    movements = relationship("SleepMovement", back_populates="session", uselist=True)
+    movements = relationship(
+        "SleepMovement",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        uselist=True,
+    )
     hrv_readings = relationship(
         "SleepHRVReading",
         back_populates="session",
-        uselist=True,  # one-to-many 관계 명시
+        cascade="all, delete-orphan",
+        uselist=True,
     )
-    user = relationship("User", backref="sleep_sessions")
+    user = relationship("User", back_populates="sleep_sessions")
 
 
 class SleepMovement(Base):
@@ -69,7 +77,7 @@ class SleepMovement(Base):
     )
 
     sleep_session_id = Column(
-        BigInteger, ForeignKey("sleep_sessions.id"), nullable=False
+        BigInteger, ForeignKey("sleep_sessions.id", ondelete="CASCADE"), nullable=False
     )
     start_time_gmt = Column(DateTime(timezone=True), nullable=False)
     start_time_local = Column(DateTime(timezone=False), nullable=False)
@@ -89,7 +97,7 @@ class SleepHRVReading(Base):
     )
 
     sleep_session_id = Column(
-        BigInteger, ForeignKey("sleep_sessions.id"), nullable=False
+        BigInteger, ForeignKey("sleep_sessions.id", ondelete="CASCADE"), nullable=False
     )
     start_time_gmt = Column(DateTime(timezone=True), nullable=False)
     start_time_local = Column(DateTime(timezone=False), nullable=False)
@@ -98,5 +106,5 @@ class SleepHRVReading(Base):
     session = relationship(
         "SleepSession",
         back_populates="hrv_readings",
-        uselist=False,  # many-to-one 관계 명시
+        uselist=False,
     )

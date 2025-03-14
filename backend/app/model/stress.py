@@ -16,7 +16,9 @@ class StressDaily(Base, TimeStampMixin):
     __tablename__ = "stress_daily"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     date = Column(Date, nullable=False)
     avg_stress_level = Column(Integer)
     max_stress_level = Column(Integer)
@@ -27,10 +29,11 @@ class StressDaily(Base, TimeStampMixin):
     readings = relationship(
         "StressReading",
         back_populates="daily_summary",
+        cascade="all, delete-orphan",
         uselist=True,
     )
 
-    user = relationship("User", backref="stress_dailies")
+    user = relationship("User", back_populates="stress_dailies")
 
 
 class StressReading(Base):
@@ -40,7 +43,9 @@ class StressReading(Base):
         {"postgresql_partition_by": "RANGE (start_time_local)"},
     )
 
-    daily_summary_id = Column(BigInteger, ForeignKey("stress_daily.id"), nullable=False)
+    daily_summary_id = Column(
+        BigInteger, ForeignKey("stress_daily.id", ondelete="CASCADE"), nullable=False
+    )
     start_time_gmt = Column(DateTime(timezone=True), nullable=False)
     start_time_local = Column(DateTime(timezone=False), nullable=False)
     stress_level = Column(Integer)
