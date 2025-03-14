@@ -11,6 +11,7 @@
 """
 
 from .base_model import Base, TimeStampMixin
+from .celery_session import DatabaseTask, with_db_context
 from .session import AsyncSession, engine, get_session, init_db, transaction
 
 __all__ = [
@@ -21,4 +22,6 @@ __all__ = [
     "get_session",
     "init_db",
     "transaction",
+    "DatabaseTask",
+    "with_db_context",
 ]

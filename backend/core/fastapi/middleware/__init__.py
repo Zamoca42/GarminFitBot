@@ -8,11 +8,12 @@ FastAPI 미들웨어 패키지
 """
 
 from .auth import GarminAuthBackend, GarminAuthUser, auth_middleware
-from .kakao import KakaoBotMiddleware
+from .kakao import KakaoBotMiddleware, KakaoUserMiddleware
 
 __all__ = [
     "auth_middleware",
     "GarminAuthBackend",
     "GarminAuthUser",
     "KakaoBotMiddleware",
+    "KakaoUserMiddleware",
 ]

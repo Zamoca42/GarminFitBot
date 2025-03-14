@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   redis:
     image: redis:7-alpine
@@ -15,6 +17,9 @@ services:
       dockerfile: docker/Dockerfile
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       - redis
     networks:
@@ -24,6 +29,9 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.celery
+    volumes:
+      - .:/app
+    command: celery -A task.celery_app worker --loglevel=info --pool=solo
     depends_on:
       - redis
     networks:
@@ -33,9 +41,12 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.celery
+    volumes:
+      - .:/app
     command: celery -A task.celery_app beat --loglevel=info
     depends_on:
       - redis
+      - celery_worker
     networks:
       - app-network
 
@@ -43,12 +54,14 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.celery
+    volumes:
+      - .:/app
     command: celery -A task.celery_app flower --port=5555
     ports:
       - "5555:5555"
     depends_on:
-      - celery_worker
       - redis
+      - celery_worker
     networks:
       - app-network
 

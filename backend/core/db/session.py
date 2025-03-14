@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from core.config import (
     DATABASE_URL,
+    DEBUG,
     MAX_OVERFLOW,
     POOL_RECYCLE,
     POOL_SIZE,
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 # 엔진 설정
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=DEBUG,
     pool_size=POOL_SIZE,
     max_overflow=MAX_OVERFLOW,
     pool_timeout=POOL_TIMEOUT,

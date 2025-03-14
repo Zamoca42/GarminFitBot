@@ -18,7 +18,9 @@ class StepsDaily(Base, TimeStampMixin):
     __tablename__ = "steps_daily"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     date = Column(Date, nullable=False)
     total_steps = Column(Integer)
     goal_steps = Column(Integer)
@@ -31,10 +33,11 @@ class StepsDaily(Base, TimeStampMixin):
     intraday_readings = relationship(
         "StepsIntraday",
         back_populates="daily_summary",
+        cascade="all, delete-orphan",
         uselist=True,
     )
 
-    user = relationship("User", backref="steps_dailies")
+    user = relationship("User", back_populates="steps_dailies")
 
 
 class StepsIntraday(Base):
@@ -44,7 +47,9 @@ class StepsIntraday(Base):
         {"postgresql_partition_by": "RANGE (start_time_local)"},
     )
 
-    daily_summary_id = Column(BigInteger, ForeignKey("steps_daily.id"), nullable=False)
+    daily_summary_id = Column(
+        BigInteger, ForeignKey("steps_daily.id", ondelete="CASCADE"), nullable=False
+    )
     start_time_gmt = Column(DateTime(timezone=True), nullable=False)
     end_time_gmt = Column(DateTime(timezone=True), nullable=False)
     start_time_local = Column(DateTime(timezone=False), nullable=False)

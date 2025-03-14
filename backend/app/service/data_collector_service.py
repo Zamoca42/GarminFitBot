@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, Generic, List, Optional, TypeAlias, TypeVar, Union
@@ -6,7 +5,7 @@ from typing import Any, Dict, Generic, List, Optional, TypeAlias, TypeVar, Union
 from garth import DailyHRV, SleepData
 from garth.data.sleep import SleepMovement
 from sqlalchemy import delete, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.domain import (
     Activity,
@@ -55,20 +54,20 @@ CacheData: TypeAlias = Union[
 class BaseDataCollector(Generic[D, M]):
     """데이터 수집을 위한 기본 클래스"""
 
-    def __init__(self, client, data_cache: Dict[str, CacheData], session: AsyncSession):
+    def __init__(self, client, data_cache: Dict[str, CacheData], session: Session):
         self.client = client
         self.data_cache = data_cache
         self.session = session
 
-    async def fetch_data(self, date_str: str) -> Optional[D]:
+    def fetch_data(self, date_str: str) -> Optional[D]:
         """API에서 데이터 가져오기"""
         raise NotImplementedError
 
-    async def map_data(self, user_id: int, target_date: date, data: D) -> Optional[M]:
+    def map_data(self, user_id: int, target_date: date, data: D) -> Optional[M]:
         """데이터 매핑"""
         raise NotImplementedError
 
-    async def delete_existing_data(self, user_id: int, target_date: date) -> None:
+    def delete_existing_data(self, user_id: int, target_date: date) -> None:
         """기존 데이터 삭제"""
         raise NotImplementedError
 
@@ -76,7 +75,7 @@ class BaseDataCollector(Generic[D, M]):
 class HeartRateCollector(BaseDataCollector):
     """심박수 데이터 수집기"""
 
-    async def fetch_data(
+    def fetch_data(
         self, date_str: str
     ) -> Optional[Dict[str, Union[HeartRate, SleepHRV, DailyHRV]]]:
         heart_rate_data = self.data_cache.get(f"heart_rate:{date_str}")
@@ -85,7 +84,7 @@ class HeartRateCollector(BaseDataCollector):
             "heart_rate_data": heart_rate_data,
         }
 
-    async def map_data(
+    def map_data(
         self,
         user_id: int,
         target_date: date,
@@ -132,10 +131,10 @@ class HeartRateCollector(BaseDataCollector):
             "readings": readings,
         }
 
-    async def delete_existing_data(self, user_id: int, target_date: date) -> None:
+    def delete_existing_data(self, user_id: int, target_date: date) -> None:
         """심박수 데이터 삭제"""
         try:
-            result = await self.session.execute(
+            result = self.session.execute(
                 select(HeartRateDaily).where(
                     HeartRateDaily.user_id == user_id,
                     HeartRateDaily.date == target_date,
@@ -144,24 +143,24 @@ class HeartRateCollector(BaseDataCollector):
             daily_summary = result.scalar_one_or_none()
 
             if daily_summary:
-                await self.session.execute(
+                self.session.execute(
                     delete(HeartRateReading).where(
                         HeartRateReading.daily_summary_id == daily_summary.id,
                     )
                 )
-                await self.session.delete(daily_summary)
+                self.session.delete(daily_summary)
         except Exception as e:
             logger.error(
                 f"심박수 데이터 삭제 실패 - User: {user_id}, Date: {target_date}, Error: {str(e)}"
             )
-            await self.session.rollback()
+            self.session.rollback()
             raise
 
 
 class StressCollector(BaseDataCollector):
     """스트레스 데이터 수집기"""
 
-    async def fetch_data(
+    def fetch_data(
         self, date_str: str
     ) -> Optional[Dict[str, Union[Stress, DailySummary]]]:
         stress_data = self.data_cache.get(f"stress:{date_str}")
@@ -172,7 +171,7 @@ class StressCollector(BaseDataCollector):
 
         return {"stress_data": stress_data, "daily_summary": daily_summary}
 
-    async def map_data(
+    def map_data(
         self,
         user_id: int,
         target_date: date,
@@ -210,10 +209,10 @@ class StressCollector(BaseDataCollector):
             "readings": readings,
         }
 
-    async def delete_existing_data(self, user_id: int, target_date: date) -> None:
+    def delete_existing_data(self, user_id: int, target_date: date) -> None:
         """스트레스 데이터 삭제"""
         try:
-            result = await self.session.execute(
+            result = self.session.execute(
                 select(StressDaily).where(
                     StressDaily.user_id == user_id,
                     StressDaily.date == target_date,
@@ -222,24 +221,24 @@ class StressCollector(BaseDataCollector):
             daily_summary = result.scalar_one_or_none()
 
             if daily_summary:
-                await self.session.execute(
+                self.session.execute(
                     delete(StressReading).where(
                         StressReading.daily_summary_id == daily_summary.id,
                     )
                 )
-                await self.session.delete(daily_summary)
+                self.session.delete(daily_summary)
         except Exception as e:
             logger.error(
                 f"스트레스 데이터 삭제 실패 - User: {user_id}, Date: {target_date}, Error: {str(e)}"
             )
-            await self.session.rollback()
+            self.session.rollback()
             raise
 
 
 class StepsCollector(BaseDataCollector):
     """걸음수 데이터 수집기"""
 
-    async def fetch_data(
+    def fetch_data(
         self, date_str: str
     ) -> Optional[Dict[str, Union[DailySummary, List[StepsValue]]]]:
         daily_summary_data = self.data_cache.get(f"daily_summary:{date_str}")
@@ -250,7 +249,7 @@ class StepsCollector(BaseDataCollector):
 
         return {"daily_summary": daily_summary_data, "steps_data": steps_data}
 
-    async def map_data(
+    def map_data(
         self,
         user_id: int,
         target_date: date,
@@ -310,10 +309,10 @@ class StepsCollector(BaseDataCollector):
             "readings": readings,
         }
 
-    async def delete_existing_data(self, user_id: int, target_date: date) -> None:
+    def delete_existing_data(self, user_id: int, target_date: date) -> None:
         """걸음수 데이터 삭제"""
         try:
-            result = await self.session.execute(
+            result = self.session.execute(
                 select(StepsDaily).where(
                     StepsDaily.user_id == user_id,
                     StepsDaily.date == target_date,
@@ -322,24 +321,24 @@ class StepsCollector(BaseDataCollector):
             daily_summary = result.scalar_one_or_none()
 
             if daily_summary:
-                await self.session.execute(
+                self.session.execute(
                     delete(StepsIntraday).where(
                         StepsIntraday.daily_summary_id == daily_summary.id,
                     )
                 )
-                await self.session.delete(daily_summary)
+                self.session.delete(daily_summary)
         except Exception as e:
             logger.error(
                 f"걸음수 데이터 삭제 실패 - User: {user_id}, Date: {target_date}, Error: {str(e)}"
             )
-            await self.session.rollback()
+            self.session.rollback()
             raise
 
 
 class SleepCollector(BaseDataCollector):
     """수면 데이터 수집기"""
 
-    async def fetch_data(
+    def fetch_data(
         self, date_str: str
     ) -> Optional[Dict[str, Union[SleepData, SleepHRV, List[SleepMovement]]]]:
         # 캐시된 데이터 사용
@@ -359,7 +358,7 @@ class SleepCollector(BaseDataCollector):
             ),
         }
 
-    async def map_data(
+    def map_data(
         self,
         user_id: int,
         target_date: date,
@@ -474,10 +473,10 @@ class SleepCollector(BaseDataCollector):
             "hrv_readings": hrv_readings,
         }
 
-    async def delete_existing_data(self, user_id: int, target_date: date) -> None:
+    def delete_existing_data(self, user_id: int, target_date: date) -> None:
         """수면 데이터 삭제"""
         try:
-            result = await self.session.execute(
+            result = self.session.execute(
                 select(SleepSession).where(
                     SleepSession.user_id == user_id,
                     SleepSession.date == target_date,
@@ -486,19 +485,19 @@ class SleepCollector(BaseDataCollector):
             sleep_session = result.scalar_one_or_none()
 
             if sleep_session:
-                await self.session.execute(
+                self.session.execute(
                     delete(SleepMovementModel).where(
                         SleepMovementModel.sleep_session_id == sleep_session.id
                     )
                 )
 
-                await self.session.execute(
+                self.session.execute(
                     delete(SleepHRVReading).where(
                         SleepHRVReading.sleep_session_id == sleep_session.id
                     )
                 )
 
-                await self.session.delete(sleep_session)
+                self.session.delete(sleep_session)
         except Exception as e:
             logger.error(
                 f"수면 데이터 삭제 실패 - User: {user_id}, Date: {target_date}, Error: {str(e)}"
@@ -509,7 +508,7 @@ class SleepCollector(BaseDataCollector):
 class ActivityCollector(BaseDataCollector):
     """활동 데이터 수집기"""
 
-    async def fetch_data(self, date_str: str) -> Optional[List[Activity]]:
+    def fetch_data(self, date_str: str) -> Optional[List[Activity]]:
         all_activities = self.data_cache.get(f"activities:{date_str}")
         if not all_activities:
             return None
@@ -528,7 +527,7 @@ class ActivityCollector(BaseDataCollector):
 
         return activities
 
-    async def map_data(
+    def map_data(
         self, user_id: int, target_date: date, activities: List[Activity]
     ) -> Dict[str, Any]:
         saved_activities = []
@@ -564,20 +563,58 @@ class ActivityCollector(BaseDataCollector):
 
         return {"activities": saved_activities}
 
-    async def delete_existing_data(self, user_id: int, target_date: date) -> None:
+    def delete_existing_data(self, user_id: int, target_date: date) -> None:
         """활동 데이터 삭제"""
         try:
-            await self.session.execute(
+            self.session.execute(
                 delete(ActivityModel).where(
                     func.date(ActivityModel.start_time_local) == target_date,
                 )
             )
-            await self.session.commit()
+            self.session.commit()
         except Exception as e:
             logger.error(
                 f"활동 데이터 삭제 실패 - User: {user_id}, Date: {target_date}, Error: {str(e)}"
             )
             raise
+
+
+class DataCollectionError(Exception):
+    """데이터 수집 중 발생하는 예외"""
+
+    def __init__(self, message: str, error_type: str = "GENERAL", details: dict = None):
+        self.message = message
+        self.error_type = error_type
+        self.details = details or {}
+        super().__init__(self.message)
+
+
+class DataFetchError(DataCollectionError):
+    """데이터 가져오기 실패 예외"""
+
+    def __init__(self, message: str, details: dict = None):
+        super().__init__(message, "FETCH_ERROR", details)
+
+
+class DataMappingError(DataCollectionError):
+    """데이터 매핑 실패 예외"""
+
+    def __init__(self, message: str, details: dict = None):
+        super().__init__(message, "MAPPING_ERROR", details)
+
+
+class DataValidationError(DataCollectionError):
+    """데이터 유효성 검증 실패 예외"""
+
+    def __init__(self, message: str, details: dict = None):
+        super().__init__(message, "VALIDATION_ERROR", details)
+
+
+class DataStorageError(DataCollectionError):
+    """데이터 저장 실패 예외"""
+
+    def __init__(self, message: str, details: dict = None):
+        super().__init__(message, "STORAGE_ERROR", details)
 
 
 class GarminDataCollectorService(BaseGarminService):
@@ -588,7 +625,7 @@ class GarminDataCollectorService(BaseGarminService):
     - 배치 작업으로 실행
     """
 
-    def __init__(self, client, session: AsyncSession):
+    def __init__(self, client, session: Session):
         super().__init__(client)
         self.session = session
         self._data_cache: Dict[str, CacheData] = {}
@@ -597,188 +634,218 @@ class GarminDataCollectorService(BaseGarminService):
         """캐시 키 생성"""
         return f"{endpoint}:{date_str}"
 
-    async def _fetch_with_cache(self, endpoint: str, date_str: str, fetch_func) -> Any:
+    def _fetch_with_cache(self, endpoint: str, date_str: str, fetch_func) -> Any:
         """
         새로운 데이터를 가져와서 캐시에 저장
-
-        Args:
-            endpoint: API 엔드포인트
-            date_str: 날짜 문자열
-            fetch_func: 데이터 가져오는 함수
         """
         cache_key = self._get_cache_key(endpoint, date_str)
+        if cache_key in self._data_cache:
+            return self._data_cache[cache_key]
 
         try:
-            # 비동기 함수인 경우 await 사용
-            if asyncio.iscoroutinefunction(fetch_func):
-                data = await fetch_func(date_str, client=self.client)
-            else:
-                # 동기 함수인 경우 직접 호출
-                data = fetch_func(date_str, client=self.client)
-
+            data = fetch_func(date_str, client=self.client)
             if data:
                 self._data_cache[cache_key] = data
                 logger.info(f"데이터 가져오기 성공: {cache_key}")
             return data
         except Exception as e:
-            logger.error(f"데이터 가져오기 실패: {cache_key}, Error: {str(e)}")
-            return None
+            logger.error(f"{endpoint} 데이터 가져오기 실패: {str(e)}")
+            raise DataFetchError(
+                f"{endpoint} 데이터 가져오기 실패: {str(e)}",
+                details={"endpoint": endpoint, "date": date_str},
+            )
 
-    async def _prefetch_data(self, date_str: str) -> None:
+    def _prefetch_data(self, date_str: str) -> None:
         """
-        필요한 모든 데이터를 미리 가져와서 캐시에 저장
+        필요한 데이터를 미리 가져와서 캐시
         """
         try:
-            sync_time = self.client.connectapi(
-                "/wellness-service/wellness/syncTimestamp"
+            # 일일 요약 데이터
+            self._fetch_with_cache(
+                "daily_summary",
+                date_str,
+                lambda date_str, client: DailySummary.get(date_str, client=client),
             )
-            if not sync_time:
-                raise ValueError("동기화 시간을 가져올 수 없습니다")
 
-            try:
-                if isinstance(sync_time, str):
-                    sync_datetime = datetime.fromisoformat(
-                        sync_time.replace("Z", "+00:00")
-                    )
-                else:
-                    sync_datetime = datetime.fromtimestamp(
-                        int(sync_time) / 1000, timezone.utc
-                    )
-                logger.info(f"변환된 동기화 시간: {sync_datetime}")
-            except (ValueError, TypeError) as e:
-                raise ValueError(f"동기화 시간 변환 실패: {str(e)}")
+            # 심박수 데이터
+            self._fetch_with_cache(
+                "heart_rate",
+                date_str,
+                lambda date_str, client: HeartRate.get(date_str, client=client),
+            )
 
-            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            # 스트레스 데이터
+            self._fetch_with_cache(
+                "stress",
+                date_str,
+                lambda date_str, client: Stress.get(date_str, client=client),
+            )
 
-            # 동기화 시간이 대상 날짜보다 이전이면 예외 발생
-            if sync_datetime.date() < target_date:
-                raise ValueError(
-                    f"기기 동기화 시간({sync_datetime.date()})이 대상 날짜({target_date})보다 이전입니다"
-                )
-
-            logger.info("데이터 가져오기 시작")
-            tasks = [
-                self._fetch_with_cache("daily_summary", date_str, DailySummary.get),
-                self._fetch_with_cache("heart_rate", date_str, HeartRate.get),
-                self._fetch_with_cache("stress", date_str, Stress.get),
-                self._fetch_with_cache("steps_data", date_str, StepsValue.get_readings),
-                self._fetch_with_cache(
-                    "activities",
-                    date_str,
-                    lambda date_str, client: Activity.list(50, 0, client=client),
+            # 걸음수 데이터
+            self._fetch_with_cache(
+                "steps_data",
+                date_str,
+                lambda date_str, client: StepsValue.get_readings(
+                    date_str, client=client
                 ),
-            ]
+            )
 
-            sleep_data = await self._fetch_with_cache(
-                "sleep_data", date_str, SleepData.get
+            # 수면 데이터
+            sleep_data = self._fetch_with_cache(
+                "sleep_data",
+                date_str,
+                lambda date_str, client: SleepData.get(date_str, client=client),
             )
             if sleep_data:
-                await self._fetch_with_cache("sleep_hrv", date_str, SleepHRV.get)
+                self._fetch_with_cache(
+                    "sleep_hrv",
+                    date_str,
+                    lambda date_str, client: SleepHRV.get(date_str, client=client),
+                )
             else:
                 logger.info("수면 데이터 없음")
 
-            await asyncio.gather(*tasks)
-            logger.info("데이터 가져오기 완료")
+            # 활동 데이터
+            self._fetch_with_cache(
+                "activities",
+                date_str,
+                lambda date_str, client: Activity.list(50, 0, client=client),
+            )
 
-        except Exception as e:
+        except DataFetchError as e:
             logger.error(f"데이터 프리페치 실패: {str(e)}")
-            raise
+            raise DataCollectionError(
+                f"데이터 프리페치 실패: {str(e)}",
+                error_type="PREFETCH_ERROR",
+                details={"date": date_str},
+            )
 
-    async def _collect_with_collector(
+    def _collect_with_collector(
         self,
         collector: BaseDataCollector,
         user_id: int,
         target_date: date,
         date_str: str,
     ) -> Optional[Any]:
+        """
+        컬렉터를 사용하여 데이터 수집
+        """
         try:
-            data = await collector.fetch_data(date_str)
+            # 데이터 가져오기
+            data = collector.fetch_data(date_str)
             if not data:
                 logger.warning(
                     f"{collector.__class__.__name__}에서 데이터를 가져오지 못함"
                 )
                 return None
 
-            mapped_data = await collector.map_data(user_id, target_date, data)
+            # 데이터 매핑
+            mapped_data = collector.map_data(user_id, target_date, data)
             if not mapped_data:
-                logger.warning(f"{collector.__class__.__name__}에서 데이터 매핑 실패")
-                return None
+                logger.warning(f"{collector.__class__.__name__} 데이터 매핑 실패")
+                raise DataMappingError(
+                    f"{collector.__class__.__name__} 데이터 매핑 실패",
+                    details={
+                        "collector": collector.__class__.__name__,
+                        "date": date_str,
+                    },
+                )
 
-            await collector.delete_existing_data(user_id, target_date)
+            # 기존 데이터 삭제
+            collector.delete_existing_data(user_id, target_date)
 
-            if isinstance(mapped_data, dict):
-                if "daily_summary" in mapped_data:
-                    self.session.add(mapped_data["daily_summary"])
-                if "movements" in mapped_data:
-                    self.session.add_all(mapped_data["movements"])
-                if "readings" in mapped_data:
-                    self.session.add_all(mapped_data["readings"])
-                if "hrv_readings" in mapped_data:
-                    self.session.add_all(mapped_data["hrv_readings"])
-                if "activities" in mapped_data:
-                    self.session.add_all(mapped_data["activities"])
-            else:
-                self.session.add(mapped_data)
+            # 데이터 저장
+            try:
+                if isinstance(mapped_data, dict):
+                    if "activities" in mapped_data:
+                        for activity in mapped_data["activities"]:
+                            self.session.add(activity)
+                    else:
+                        for model in mapped_data.values():
+                            if isinstance(model, list):
+                                for item in model:
+                                    self.session.add(item)
+                            else:
+                                self.session.add(model)
+                else:
+                    self.session.add(mapped_data)
 
-            await self.session.flush()
-            await self.session.commit()
+                self.session.commit()
+                return f"{collector.__class__.__name__} 데이터 저장 성공"
+            except Exception as e:
+                self.session.rollback()
+                raise DataStorageError(
+                    f"{collector.__class__.__name__} 데이터 저장 실패: {str(e)}",
+                    details={
+                        "collector": collector.__class__.__name__,
+                        "date": date_str,
+                    },
+                )
 
-            return mapped_data
-
+        except (DataFetchError, DataMappingError, DataStorageError) as e:
+            raise e
         except Exception as e:
-            await self.session.rollback()
             logger.error(f"{collector.__class__.__name__} 데이터 수집 실패: {str(e)}")
-            raise
+            raise DataCollectionError(
+                f"{collector.__class__.__name__} 데이터 수집 실패: {str(e)}",
+                details={"collector": collector.__class__.__name__, "date": date_str},
+            )
 
-    async def collect_daily_data(
-        self, user_id: int, target_date: date
-    ) -> Dict[str, Any]:
-        logger.info("데이터 수집 시작 - User: %d, Date: %s", user_id, target_date)
-        date_str = target_date.strftime("%Y-%m-%d")
-
+    def collect_daily_data(self, user_id: int, target_date: date) -> Dict[str, Any]:
+        """
+        일일 데이터 수집
+        """
         try:
-            await self._prefetch_data(date_str)
+            date_str = target_date.strftime("%Y-%m-%d")
+            self._prefetch_data(date_str)
 
-            heart_rate_collector = HeartRateCollector(
-                self.client, self._data_cache, self.session
-            )
-            stress_collector = StressCollector(
-                self.client, self._data_cache, self.session
-            )
-            steps_collector = StepsCollector(
-                self.client, self._data_cache, self.session
-            )
-            sleep_collector = SleepCollector(
-                self.client, self._data_cache, self.session
-            )
-            activity_collector = ActivityCollector(
-                self.client, self._data_cache, self.session
-            )
-
-            result = {}
+            # 각 컬렉터로 데이터 수집
             collectors = [
-                ("heart_rate", heart_rate_collector),
-                ("stress", stress_collector),
-                ("steps", steps_collector),
-                ("sleep", sleep_collector),
-                ("activities", activity_collector),
+                HeartRateCollector(self.client, self._data_cache, self.session),
+                StressCollector(self.client, self._data_cache, self.session),
+                StepsCollector(self.client, self._data_cache, self.session),
+                SleepCollector(self.client, self._data_cache, self.session),
+                ActivityCollector(self.client, self._data_cache, self.session),
             ]
 
-            for key, collector in collectors:
+            results = {}
+            for collector in collectors:
                 try:
-                    data = await self._collect_with_collector(
+                    result = self._collect_with_collector(
                         collector, user_id, target_date, date_str
                     )
-                    if data:
-                        result[key] = data
+                    if result:
+                        results[collector.__class__.__name__] = result
                 except Exception as e:
-                    logger.error(f"{key} 데이터 수집 실패: {str(e)}")
-                    continue
+                    logger.error(
+                        f"{collector.__class__.__name__} 데이터 수집 실패: {str(e)}"
+                    )
+                    raise DataCollectionError(
+                        f"{collector.__class__.__name__} 데이터 수집 실패: {str(e)}",
+                        details={
+                            "collector": collector.__class__.__name__,
+                            "date": date_str,
+                        },
+                    )
 
-            return result
+            if not results:
+                raise DataValidationError(
+                    "수집된 데이터가 없습니다.",
+                    details={"user_id": user_id, "date": date_str},
+                )
 
+            return results
+
+        except (
+            DataFetchError,
+            DataMappingError,
+            DataStorageError,
+            DataValidationError,
+        ) as e:
+            raise e
         except Exception as e:
-            logger.error(
-                f"데이터 수집 실패 - User: {user_id}, Date: {target_date}, Error: {str(e)}"
+            logger.error(f"데이터 수집 실패: {str(e)}")
+            raise DataCollectionError(
+                f"데이터 수집 실패: {str(e)}",
+                details={"user_id": user_id, "date": date_str},
             )
-            raise

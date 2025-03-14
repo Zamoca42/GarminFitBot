@@ -8,7 +8,9 @@ class Activity(Base, TimeStampMixin):
     __tablename__ = "activities"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     activity_type = Column(String(50), nullable=False)
     start_time_utc = Column(DateTime(timezone=True), nullable=False)
     start_time_local = Column(DateTime(timezone=False), nullable=False)
@@ -23,4 +25,4 @@ class Activity(Base, TimeStampMixin):
     elevation_gain = Column(Integer)  # meters
     training_effect = Column(Float)
 
-    user = relationship("User", backref="activities")
+    user = relationship("User", back_populates="activities")

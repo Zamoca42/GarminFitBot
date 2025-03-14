@@ -16,7 +16,9 @@ class HeartRateDaily(Base, TimeStampMixin):
     __tablename__ = "heart_rate_daily"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     date = Column(Date, nullable=False)
     resting_hr = Column(Integer)
     max_hr = Column(Integer)
@@ -27,10 +29,11 @@ class HeartRateDaily(Base, TimeStampMixin):
     readings = relationship(
         "HeartRateReading",
         back_populates="daily_summary",
+        cascade="all, delete-orphan",
         uselist=True,
     )
 
-    user = relationship("User", backref="heart_rate_dailies")
+    user = relationship("User", back_populates="heart_rate_dailies")
 
 
 class HeartRateReading(Base):
@@ -41,7 +44,9 @@ class HeartRateReading(Base):
     )
 
     daily_summary_id = Column(
-        BigInteger, ForeignKey("heart_rate_daily.id"), nullable=False
+        BigInteger,
+        ForeignKey("heart_rate_daily.id", ondelete="CASCADE"),
+        nullable=False,
     )
     start_time_gmt = Column(DateTime(timezone=True), nullable=False)
     start_time_local = Column(DateTime(timezone=False), nullable=False)
