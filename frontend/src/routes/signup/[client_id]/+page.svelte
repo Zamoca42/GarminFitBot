@@ -69,8 +69,7 @@
 			}
 
 			isSuccess = true;
-			// 성공 시 완료 페이지로 이동
-			goto(`/signup/complete?client_id=${clientId}`);
+			goto(`/signup/complete`);
 
 		} catch (error: unknown) {
 			showError(getErrorMessage(error));

@@ -42,7 +42,7 @@
 	$: statusInfo = {
 		PENDING: {
 			message: '작업이 존재하지 않습니다...',
-			color: 'text-yellow-500'
+			color: 'text-gray-500'
 		},
 		PROGRESS: {
 			message: '작업이 진행 중입니다...',
