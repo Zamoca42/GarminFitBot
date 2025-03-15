@@ -66,7 +66,7 @@ class AuthController:
                         {
                             "textCard": TextCard(
                                 title="챗봇 서비스 연결을 시작을 시작합니다",
-                                description=f"서비스 연결을 위해 아래 버튼을 클릭해주세요. \n\n웹 페이지가 열리고 가민 커넥트 계정을 입력하면 서비스 연결이 완료됩니다.",
+                                description="서비스 연결을 위해 아래 버튼을 클릭해주세요. \n\n웹 페이지가 열리고 가민 커넥트 계정을 입력하면 서비스 연결이 완료됩니다.",
                                 buttons=[
                                     Button(
                                         action="webLink",

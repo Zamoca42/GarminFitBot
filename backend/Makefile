@@ -33,13 +33,19 @@ docker-build:
 	docker compose -f docker-compose.yml build
 
 docker-up:
-	docker compose -f docker-compose.yml up
+	docker compose -f docker-compose.yml up --build -d
 
 docker-down:
-	docker compose -f docker-compose.yml down --rmi all --volumes --remove-orphans
+	docker compose -f docker-compose.yml down
 
+# 사용법: make docker-logs [service]
+# service: api, celery_worker, celery_beat, flower 등 (생략 시 모든 서비스)
 docker-logs:
+ifdef service
+	docker compose -f docker-compose.yml logs -f $(service)
+else
 	docker compose -f docker-compose.yml logs -f
+endif
 
 clean:
 	rm -rf .venv

@@ -1,18 +1,15 @@
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
-from pydantic import BaseModel
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.authentication import AuthenticationMiddleware
 
 from api.common.schema import ResponseModel
 from api.v1.auth.router import router as auth_router
-from api.v1.data.router import router as data_router
+from api.v1.kakao.router import router as kakao_router
 from api.v1.profile.router import router as profile_router
+from api.v1.task.router import router as task_router
 from app.service import (
     GarminAuthManager,
     GarminStatsService,
@@ -51,23 +48,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 카카오톡 미들웨어 등록
+# 카카오톡 미들웨어 등록 (순서 중요: 봇 검증 -> 유저 검증)
+app.add_middleware(KakaoUserMiddleware, session_factory=get_session)
 app.add_middleware(KakaoBotMiddleware)
-app.add_middleware(KakaoUserMiddleware)
 
 security = HTTPBearer()
 
 
-# 헬스체크 응답 모델
-class HealthResponse(BaseModel):
-    status: str
-    db_status: str
-    timestamp: datetime
-
-
 app.include_router(auth_router)
 app.include_router(profile_router)
-app.include_router(data_router)
+app.include_router(task_router)
+app.include_router(kakao_router)
 
 app.add_middleware(AuthenticationMiddleware, backend=GarminAuthBackend())
 
@@ -516,29 +507,3 @@ async def get_daily_steps_stats(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
         )
-
-
-@app.get(
-    "/health",
-    tags=["시스템"],
-    response_model=HealthResponse,
-    summary="시스템 헬스 체크",
-)
-async def health_check(db: AsyncSession = Depends(get_session)):
-    """
-    시스템 상태 확인
-    - API 서버 상태
-    - 데이터베이스 연결 상태
-    """
-    try:
-        # DB 연결 테스트
-        await db.execute(text("SELECT 1"))
-        db_status = "healthy"
-    except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
-
-    return {
-        "status": "running",
-        "db_status": db_status,
-        "timestamp": datetime.now(timezone.utc),
-    }
