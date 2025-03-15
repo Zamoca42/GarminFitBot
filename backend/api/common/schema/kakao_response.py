@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class SimpleText(BaseModel):

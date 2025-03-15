@@ -98,9 +98,7 @@ class GarminDataCollectionTask(DatabaseTask):
             }
             raise Exception(error_response)
 
-    def _parse_target_date(
-        self, target_date: str, user_tz: pytz.timezone
-    ) -> datetime:
+    def _parse_target_date(self, target_date: str, user_tz: pytz.timezone) -> datetime:
         """목표 날짜 파싱"""
         target_datetime_local = datetime.strptime(target_date, "%Y-%m-%d")
         return user_tz.localize(target_datetime_local)
@@ -118,9 +116,7 @@ class GarminDataCollectionTask(DatabaseTask):
             "last_sync_time_local": last_sync_time_local.strftime(
                 "%Y-%m-%d %H:%M:%S %z"
             ),
-            "target_date_local": target_datetime_local.strftime(
-                "%Y-%m-%d %H:%M:%S %z"
-            ),
+            "target_date_local": target_datetime_local.strftime("%Y-%m-%d %H:%M:%S %z"),
         }
         raise Exception(error_response)
 

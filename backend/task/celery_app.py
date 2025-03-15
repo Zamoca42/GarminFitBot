@@ -1,4 +1,4 @@
-from celery import Celery, Task
+from celery import Celery
 from celery.schedules import crontab
 
 from core.config import BROKER_URL, RESULT_BACKEND

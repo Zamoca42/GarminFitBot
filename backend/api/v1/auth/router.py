@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPBearer
 
-from api.common.schema import KakaoRequest, ResponseModel
+from api.common.schema import KakaoRequest, KakaoResponse, ResponseModel
 from api.v1.auth.controller import AuthController
 from api.v1.auth.schema import LoginRequest, SignupRequest
 from app.service import GarminAuthManager, TempTokenService, TokenService
@@ -54,7 +54,11 @@ async def refresh_token(
     return await controller.refresh_token(request)
 
 
-@router.post("/kakao/signup", summary="카카오톡 챗봇 회원가입 요청")
+@router.post(
+    "/kakao/signup",
+    summary="카카오톡 챗봇 회원가입 요청",
+    response_model=KakaoResponse,
+)
 async def kakao_signup(
     request: KakaoRequest, controller: AuthController = Depends(get_auth_controller)
 ):
