@@ -1,8 +1,12 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import { goto } from '$app/navigation';
+
+	interface ErrorWithMessage {
+    message: string;
+  }
 
 	let garminId = '';
 	let password = '';
@@ -12,8 +16,24 @@
 	let isLoading = false;
 	let isSuccess = false;
 
-	$: clientId = $page.params.client_id;
+	$: clientId = page.params.client_id;
 	$: isLocked = loginAttempts >= 5;
+
+	function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof (error as Record<string, unknown>).message === 'string'
+    );
+  }
+
+  function getErrorMessage(error: unknown): string {
+    if (isErrorWithMessage(error)) {
+      return error.message;
+    }
+    return '알 수 없는 오류가 발생했습니다.';
+  }
 
 	async function handleSubmit() {
 		if (isLocked) {
@@ -52,8 +72,8 @@
 			// 성공 시 완료 페이지로 이동
 			goto(`/signup/complete?client_id=${clientId}`);
 
-		} catch (error) {
-			showError(error.message);
+		} catch (error: unknown) {
+			showError(getErrorMessage(error));
 			resetForm();
 		} finally {
 			isLoading = false;
