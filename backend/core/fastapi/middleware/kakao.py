@@ -63,7 +63,7 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
             )
         )
         return JSONResponse(
-            status_code=status.HTTP_204_NO_CONTENT,
+            status_code=status.HTTP_200_OK,
             content=kakao_response.model_dump(),
         )
 
@@ -94,7 +94,7 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
             )
         )
         return JSONResponse(
-            status_code=status.HTTP_204_NO_CONTENT,
+            status_code=status.HTTP_200_OK,
             content=kakao_response.model_dump(),
         )
 
