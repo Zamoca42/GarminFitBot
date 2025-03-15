@@ -1,9 +1,3 @@
-<script lang="ts">
-	import { page } from '$app/stores';
-	
-	$: clientId = $page.url.searchParams.get('client_id');
-</script>
-
 <svelte:head>
 	<title>회원가입 완료 - GarminFitBot</title>
 </svelte:head>

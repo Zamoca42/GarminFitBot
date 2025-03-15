@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 </script>
 
 <svelte:head>
@@ -10,10 +10,10 @@
 	<div class="max-w-md w-full text-center space-y-8">
 		<div>
 			<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-				{$page.status === 404 ? '페이지를 찾을 수 없습니다' : '오류가 발생했습니다'}
+				{page.status === 404 ? '페이지를 찾을 수 없습니다' : '오류가 발생했습니다'}
 			</h2>
 			<p class="mt-2 text-center text-sm text-gray-600">
-				{$page.error?.message || '잠시 후 다시 시도해주세요.'}
+				{page.error?.message || '잠시 후 다시 시도해주세요.'}
 			</p>
 		</div>
 		<div class="mt-4">
