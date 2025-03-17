@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from core.config import DEBUG, SYNC_DATABASE_URL
 
 engine = create_engine(SYNC_DATABASE_URL, echo=DEBUG)
-SessionFactory = sessionmaker(bind=engine)
+SessionFactory = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 
 
 def with_db_context(func):
