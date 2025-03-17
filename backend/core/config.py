@@ -15,6 +15,14 @@ SYNC_DATABASE_URL = os.getenv(
     "SYNC_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/garmin_db"
 )
 
+# gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# langsmith
+LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING")
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
+LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "gramin-fit-bot")
+
 # RabbitMQ 설정
 BROKER_URL = os.getenv("BROKER_URL", "amqp://guest:guest@localhost:5672//")
 RESULT_BACKEND = os.getenv("RESULT_BACKEND", "rpc://")

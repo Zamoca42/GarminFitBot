@@ -46,11 +46,7 @@ class GarminDataCollectionTask(DatabaseTask):
             logger.warning(
                 f"카카오톡 유저 ID {kakao_user_id}에 해당하는 사용자를 찾을 수 없음"
             )
-            error_response = {
-                "status": "error",
-                "message": "사용자를 찾을 수 없습니다.",
-            }
-            raise Exception(error_response)
+            raise Exception("데이터를 수집할 수 없습니다.")
 
         return user
 
@@ -91,11 +87,8 @@ class GarminDataCollectionTask(DatabaseTask):
         try:
             return pytz.timezone(user_timezone)
         except pytz.exceptions.UnknownTimeZoneError:
-            logger.error(f"알 수 없는 시간대: {user_timezone}")
-            error_response = {
-                "status": "error",
-                "message": f"알 수 없는 시간대입니다: {user_timezone}",
-            }
+            error_response = f"알 수 없는 시간대입니다: {user_timezone}"
+            logger.error(error_response)
             raise Exception(error_response)
 
     def _parse_target_date(self, target_date: str, user_tz: pytz.timezone) -> datetime:
@@ -107,17 +100,8 @@ class GarminDataCollectionTask(DatabaseTask):
         self, last_sync_time_local: datetime, target_datetime_local: datetime
     ) -> None:
         """동기화 시간 오류 처리"""
-        logger.warning(
-            f"마지막 동기화 시간(로컬: {last_sync_time_local})이 요청된 날짜({target_datetime_local.date()})보다 이전입니다."
-        )
-        error_response = {
-            "status": "error",
-            "message": "마지막 동기화 시간이 요청된 날짜보다 이전입니다.",
-            "last_sync_time_local": last_sync_time_local.strftime(
-                "%Y-%m-%d %H:%M:%S %z"
-            ),
-            "target_date_local": target_datetime_local.strftime("%Y-%m-%d %H:%M:%S %z"),
-        }
+        error_response = f"마지막 동기화 시간(로컬: {last_sync_time_local})이 요청된 날짜({target_datetime_local.date()})보다 이전입니다."
+        logger.warning(error_response)
         raise Exception(error_response)
 
     def _collect_data(
@@ -134,11 +118,7 @@ class GarminDataCollectionTask(DatabaseTask):
             result = collector_service.collect_daily_data(user_id, target_date)
 
             if not result:
-                error_response = {
-                    "status": "error",
-                    "message": "데이터를 수집할 수 없습니다.",
-                }
-                raise Exception(error_response)
+                raise Exception("데이터를 수집할 수 없습니다.")
 
             logger.info(f"사용자 {user_id}의 {target_date} 데이터 수집 완료")
             return result
