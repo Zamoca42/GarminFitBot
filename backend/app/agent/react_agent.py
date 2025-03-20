@@ -11,13 +11,14 @@ from langchain_core.messages import (
     ToolMessage,
 )
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.graph import StateGraph
+from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 from langsmith import traceable
 
 from app.agent.prompt import (
     create_date_prompt,
     create_execute_tool_prompt,
+    create_final_report_prompt,
     create_health_analyze_prompt,
     create_planner_prompt,
 )
@@ -254,7 +255,9 @@ class HealthAnalysisAgent:
             parsed_tool_data = self._extract_tool_execution_results(state)
             response = self._generate_health_analysis(state, parsed_tool_data)
             if response is None or response.summary is None:
-                raise ValueError("Health analysis response is invalid or missing a summary.")
+                raise ValueError(
+                    "Health analysis response is invalid or missing a summary."
+                )
             save_analysis_result(state, response)
             return {
                 "messages": state["messages"] + [AIMessage(content=response.summary)]
@@ -267,9 +270,27 @@ class HealthAnalysisAgent:
         llm = self._initialize_llm()
 
         def final_report(state: AgentState):
-            response = llm.invoke(state["messages"])
+            past_summaries = [history.summary for history in state["analysis_history"]]
+
+            past_insights = []
+            for history in state["analysis_history"]:
+                past_insights.extend(history.insights)
+
+            human_message = HumanMessage(
+                content=f"""
+            # 📌 요약
+            {" ".join(past_summaries)}
+
+            # 🔍 주요 인사이트
+            - {"\n- ".join(past_insights)}
+
+            위 데이터를 기반으로 건강 피드백과 개선 방안을 Markdown 형식으로 작성하세요.
+            """
+            )
+            response = llm.invoke([create_final_report_prompt(), human_message])
+
             return {
-                "messages": [response],
+                "messages": state["messages"] + [response],
             }
 
         return final_report
@@ -281,6 +302,7 @@ class HealthAnalysisAgent:
         plan_node_title = "plan"
         execute_tool_node_title = "execute_tool"
         analyze_health_node_title = "analyze_health"
+        final_report_node_title = "final_report"
         tools_node_title = "tools"
 
         # 그래프 생성
@@ -295,13 +317,14 @@ class HealthAnalysisAgent:
             return (
                 execute_tool_node_title
                 if last_analysis and last_analysis.additional_analysis_needed
-                else "__END__"
+                else final_report_node_title
             )
 
         # 노드 추가
         workflow.add_node(plan_node_title, self._create_plan_node())
         workflow.add_node(analyze_health_node_title, self._create_analyze_health_node())
         workflow.add_node(execute_tool_node_title, self._create_execute_tool_node())
+        workflow.add_node(final_report_node_title, self._create_final_report_node())
         workflow.add_node(tools_node_title, tools_node)
 
         # 엣지 추가
@@ -309,6 +332,7 @@ class HealthAnalysisAgent:
         workflow.add_edge(plan_node_title, execute_tool_node_title)
         workflow.add_edge(execute_tool_node_title, tools_node_title)
         workflow.add_edge(tools_node_title, analyze_health_node_title)
+        workflow.add_edge(final_report_node_title, END)
 
         # 조건 엣지 추가
         workflow.add_conditional_edges(analyze_health_node_title, custom_tool_condition)

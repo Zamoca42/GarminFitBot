@@ -6,6 +6,7 @@ from typing import Any, Dict, Type
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from app.agent.tool import BaseDBTool
 from app.model import (
@@ -244,8 +245,8 @@ class ActivitySummaryTool(BaseDBTool):
                 .where(
                     and_(
                         Activity.user_id == user_id,
-                        Activity.start_time_local >= start_date,
-                        Activity.start_time_local <= end_date,
+                        func.date(Activity.start_time_local) >= start_date,
+                        func.date(Activity.start_time_local) <= end_date,
                     )
                 )
                 .order_by(Activity.start_time_local)
