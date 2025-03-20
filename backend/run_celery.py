@@ -47,7 +47,7 @@ if __name__ == "__main__":
                     user_id=user_id,
                     user_timezone="Asia/Seoul",
                 )
-                
+
                 # 결과 처리
                 if isinstance(result, dict) and "messages" in result:
                     # 메시지 출력
@@ -55,11 +55,13 @@ if __name__ == "__main__":
                         if hasattr(message, "pretty_print"):
                             message.pretty_print()
                         else:
-                            print(f"{message.type if hasattr(message, 'type') else 'Message'}: {message.content if hasattr(message, 'content') else message}")
+                            print(
+                                f"{message.type if hasattr(message, 'type') else 'Message'}: {message.content if hasattr(message, 'content') else message}"
+                            )
                 else:
                     # 문자열이나 다른 형태의 결과 출력
                     print(result)
-                    
+
             except ValueError as e:
                 print(f"에러가 발생했습니다: {str(e)}")
             except Exception as e:

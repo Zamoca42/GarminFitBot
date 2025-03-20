@@ -55,6 +55,8 @@ class HeartRateSummaryTool(BaseDBTool):
         return {
             "period": {"start_date": start_date, "end_date": end_date},
             "type": "heart_rate_summary",
+            "user_id": user_id,
+            "description": self.description,
             "data": [
                 {
                     "date": summary.date,
@@ -97,6 +99,8 @@ class StepsSummaryTool(BaseDBTool):
         return {
             "period": {"start_date": start_date, "end_date": end_date},
             "type": "steps_summary",
+            "user_id": user_id,
+            "description": self.description,
             "data": [
                 {
                     "date": summary.date,
@@ -140,6 +144,8 @@ class StressSummaryTool(BaseDBTool):
         return {
             "period": {"start_date": start_date, "end_date": end_date},
             "type": "stress_summary",
+            "user_id": user_id,
+            "description": self.description,
             "data": [
                 {
                     "date": summary.date,
@@ -181,6 +187,8 @@ class SleepSummaryTool(BaseDBTool):
 
         return {
             "period": {"start_date": start_date, "end_date": end_date},
+            "user_id": user_id,
+            "description": self.description,
             "type": "sleep_summary",
             "data": [
                 {
@@ -249,6 +257,8 @@ class ActivitySummaryTool(BaseDBTool):
         return {
             "period": {"start_date": start_date, "end_date": end_date},
             "type": "activity_summary",
+            "user_id": user_id,
+            "description": self.description,
             "data": [
                 {
                     "activity_type": activity.activity_type,

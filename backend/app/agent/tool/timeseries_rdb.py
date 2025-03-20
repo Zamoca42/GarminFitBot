@@ -62,6 +62,8 @@ class HeartRateTimeSeriesTool(BaseDBTool):
 
         return {
             "date": target_date,
+            "user_id": user_id,
+            "description": self.description,
             "type": "heart_rate_timeseries",
             "readings": [
                 {"time": reading.start_time_local, "value": reading.heart_rate}
@@ -101,6 +103,8 @@ class StepsTimeSeriesTool(BaseDBTool):
 
         return {
             "date": target_date,
+            "user_id": user_id,
+            "description": self.description,
             "type": "steps_timeseries",
             "readings": [
                 {
@@ -145,6 +149,8 @@ class StressTimeSeriesTool(BaseDBTool):
 
         return {
             "date": target_date,
+            "user_id": user_id,
+            "description": self.description,
             "type": "stress_timeseries",
             "readings": [
                 {"time": reading.start_time_local, "level": reading.stress_level}
@@ -231,6 +237,8 @@ class SleepTimeSeriesTool(BaseDBTool):
 
         return {
             "date": target_date,
+            "user_id": user_id,
+            "description": self.description,
             "type": "sleep_timeseries",
             "session_period": {
                 "start": sleep_session.start_time_local,
