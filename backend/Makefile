@@ -1,4 +1,4 @@
-.PHONY: install dev start clean format lint check docker-build docker-up docker-down docker-logs
+.PHONY: install dev start clean format lint check docker-build docker-up docker-down docker-logs docker-prune
 
 install:
 	uv venv
@@ -50,3 +50,6 @@ endif
 clean:
 	rm -rf .venv
 	find . -type d -name "__pycache__" -exec rm -rf {} + 
+
+docker-prune:
+	docker builder prune -f

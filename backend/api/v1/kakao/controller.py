@@ -15,7 +15,7 @@ from api.common.schema import (
 from core.config import FRONTEND_URL
 from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
-from task import analysis_health_query, collect_user_fit_data
+from task import analysis_health_query, collect_fit_data
 
 
 class KakaoController:
@@ -27,7 +27,7 @@ class KakaoController:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
             date = request.action.detailParams["date"]["origin"]
-            task_name = collect_user_fit_data.name
+            task_name = collect_fit_data.name
             task_id = generate_task_id(user_key, date, task_name)
             celery_task_id = generate_celery_task_id(task_id)
             task_result = AsyncResult(celery_task_id)
@@ -66,7 +66,7 @@ class KakaoController:
                     )
                 )
 
-            collect_user_fit_data.apply_async(
+            collect_fit_data.apply_async(
                 kwargs={
                     "kakao_client_id": user_key,
                     "target_date": date,
@@ -177,7 +177,6 @@ class KakaoController:
                     )
                 )
 
-            # 새로운 작업 시작
             analysis_health_query.apply_async(
                 kwargs={
                     "kakao_client_id": user_key,

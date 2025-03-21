@@ -2,7 +2,7 @@ import asyncio
 import os
 import sys
 
-from task import celery_app
+from core import celery_app
 
 if __name__ == "__main__":
     # 환경 변수 설정

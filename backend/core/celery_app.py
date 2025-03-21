@@ -8,6 +8,7 @@ celery_app = Celery(
     "garmin_fit_bot",
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
+    include=["task.agent_task", "task.garmin_collector", "task.partition_manager"],
 )
 
 # Celery 설정
