@@ -24,5 +24,5 @@ class DataCollectionResponse(BaseModel):
 class TaskStatusResponse(BaseModel):
     task_id: str
     status: TaskStatus
-    result: Optional[dict] = None
+    result: Optional[str | dict] = None
     error: Optional[str] = None

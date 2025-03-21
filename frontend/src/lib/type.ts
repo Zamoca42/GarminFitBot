@@ -1,13 +1,13 @@
 export interface TaskStatusResponse {
   task_id: string;
-  status: 'PENDING' |'PROGRESS' | 'STARTED' | 'SUCCESS' | 'FAILURE';
+  status: 'PENDING' | 'PROGRESS' | 'STARTED' | 'SUCCESS' | 'FAILURE';
   result?: TaskResult;
   error?: {
     [key: string]: string;
   };
 }
 
-export type TaskName = 'collect-fit-data' | 'analyze-health';
+export type TaskName = 'collect-fit-data' | 'analysis-health';
 
 export interface TaskDisplayInfo {
   title: string;
@@ -21,6 +21,6 @@ export interface CollectorResult {
   status: '성공' | '실패' | '없음';
 }
 
-export interface TaskResult {
+export type TaskResult = string | {
   [key: string]: string;
 }

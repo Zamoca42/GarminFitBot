@@ -38,8 +38,8 @@ class BodyBatteryActivityEvent:
 class Rule:
     """데이터 접근 규칙"""
 
-    type_id: int
-    type_key: str
+    type_id: Optional[int] = None
+    type_key: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -63,81 +63,6 @@ class DailySummary(Data):
     wellness_end_time_local: datetime
     duration_in_milliseconds: int
 
-    # [칼로리]
-    total_kilocalories: int
-    active_kilocalories: int
-    bmr_kilocalories: int
-    wellness_kilocalories: int
-    wellness_active_kilocalories: int
-    net_remaining_kilocalories: int
-
-    # [걸음/거리]
-    total_steps: int
-    daily_step_goal: int
-    total_distance_meters: float
-    wellness_distance_meters: float
-
-    # [활동 시간]
-    highly_active_seconds: int
-    active_seconds: int
-    sedentary_seconds: int
-    sleeping_seconds: int
-    moderate_intensity_minutes: int
-    vigorous_intensity_minutes: int
-    intensity_minutes_goal: int
-    measurable_awake_duration: int
-    measurable_asleep_duration: int
-
-    # [층수]
-    floors_ascended_in_meters: float
-    floors_descended_in_meters: float
-    floors_ascended: float
-    floors_descended: float
-    user_floors_ascended_goal: int
-
-    # [심박수]
-    min_heart_rate: int
-    max_heart_rate: int
-    resting_heart_rate: int
-    last_seven_days_avg_resting_heart_rate: int
-    min_avg_heart_rate: int
-    max_avg_heart_rate: int
-
-    # [스트레스]
-    average_stress_level: int
-    max_stress_level: int
-    stress_duration: int
-    rest_stress_duration: int
-    activity_stress_duration: int
-    total_stress_duration: int
-    low_stress_duration: int
-    medium_stress_duration: int
-    stress_percentage: float
-    rest_stress_percentage: float
-    activity_stress_percentage: float
-    low_stress_percentage: float
-    medium_stress_percentage: float
-    high_stress_percentage: float
-    stress_qualifier: str
-
-    # [바디 배터리]
-    body_battery_charged_value: int
-    body_battery_drained_value: int
-    body_battery_highest_value: int
-    body_battery_lowest_value: int
-    body_battery_most_recent_value: int
-    body_battery_during_sleep: int
-    body_battery_at_wake_time: int
-    body_battery_version: int
-
-    # [호흡]
-    avg_waking_respiration_value: float
-    highest_respiration_value: int
-    lowest_respiration_value: int
-    latest_respiration_value: int
-    latest_respiration_time_gmt: str
-    respiration_algorithm_version: int
-
     # [기타 상태]
     includes_wellness_data: bool
     includes_activity_data: bool
@@ -145,6 +70,81 @@ class DailySummary(Data):
     privacy_protected: bool
 
     # Optional 필드들 (기본값 있는 필드들)
+
+    # [칼로리]
+    total_kilocalories: Optional[int] = None
+    active_kilocalories: Optional[int] = None
+    bmr_kilocalories: Optional[int] = None
+    wellness_kilocalories: Optional[int] = None
+    wellness_active_kilocalories: Optional[int] = None
+    net_remaining_kilocalories: Optional[int] = None
+
+    # [걸음/거리]
+    total_steps: Optional[int] = None
+    daily_step_goal: Optional[int] = None
+    total_distance_meters: Optional[float] = None
+    wellness_distance_meters: Optional[float] = None
+
+    # [활동 시간]
+    highly_active_seconds: Optional[int] = None
+    active_seconds: Optional[int] = None
+    sedentary_seconds: Optional[int] = None
+    sleeping_seconds: Optional[int] = None
+    moderate_intensity_minutes: Optional[int] = None
+    vigorous_intensity_minutes: Optional[int] = None
+    intensity_minutes_goal: Optional[int] = None
+    measurable_awake_duration: Optional[int] = None
+    measurable_asleep_duration: Optional[int] = None
+
+    # [층수]
+    floors_ascended_in_meters: Optional[float] = None
+    floors_descended_in_meters: Optional[float] = None
+    floors_ascended: Optional[float] = None
+    floors_descended: Optional[float] = None
+    user_floors_ascended_goal: Optional[int] = None
+
+    # [심박수]
+    min_heart_rate: Optional[int] = None
+    max_heart_rate: Optional[int] = None
+    resting_heart_rate: Optional[int] = None
+    last_seven_days_avg_resting_heart_rate: Optional[int] = None
+    min_avg_heart_rate: Optional[int] = None
+    max_avg_heart_rate: Optional[int] = None
+
+    # [스트레스]
+    average_stress_level: Optional[int] = None
+    max_stress_level: Optional[int] = None
+    stress_duration: Optional[int] = None
+    rest_stress_duration: Optional[int] = None
+    activity_stress_duration: Optional[int] = None
+    total_stress_duration: Optional[int] = None
+    low_stress_duration: Optional[int] = None
+    medium_stress_duration: Optional[int] = None
+    stress_percentage: Optional[float] = None
+    rest_stress_percentage: Optional[float] = None
+    activity_stress_percentage: Optional[float] = None
+    low_stress_percentage: Optional[float] = None
+    medium_stress_percentage: Optional[float] = None
+    high_stress_percentage: Optional[float] = None
+    stress_qualifier: Optional[str] = None
+
+    # [바디 배터리]
+    body_battery_charged_value: Optional[int] = None
+    body_battery_drained_value: Optional[int] = None
+    body_battery_highest_value: Optional[int] = None
+    body_battery_lowest_value: Optional[int] = None
+    body_battery_most_recent_value: Optional[int] = None
+    body_battery_during_sleep: Optional[int] = None
+    body_battery_at_wake_time: Optional[int] = None
+    body_battery_version: Optional[int] = None
+
+    # [호흡]
+    avg_waking_respiration_value: Optional[float] = None
+    highest_respiration_value: Optional[int] = None
+    lowest_respiration_value: Optional[int] = None
+    latest_respiration_value: Optional[int] = None
+    latest_respiration_time_gmt: Optional[str] = None
+    respiration_algorithm_version: Optional[int] = None
 
     # [기본 정보]
     wellness_description: Optional[str] = None

@@ -30,21 +30,21 @@ flower:
 	uv run celery -A task.celery_app flower --port=5555
 
 docker-build:
-	docker compose -f docker-compose.yml build
+	docker-compose -f docker-compose.yml build
 
 docker-up:
-	docker compose -f docker-compose.yml up --build -d
+	docker-compose -f docker-compose.yml up --build -d
 
 docker-down:
-	docker compose -f docker-compose.yml down
+	docker-compose -f docker-compose.yml down
 
 # 사용법: make docker-logs [service]
 # service: api, celery_worker, celery_beat, flower 등 (생략 시 모든 서비스)
 docker-logs:
 ifdef service
-	docker compose -f docker-compose.yml logs -f $(service)
+	docker-compose -f docker-compose.yml logs -f $(service)
 else
-	docker compose -f docker-compose.yml logs -f
+	docker-compose -f docker-compose.yml logs -f
 endif
 
 clean:

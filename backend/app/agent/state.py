@@ -1,0 +1,64 @@
+from datetime import date
+from typing import Annotated, Dict, List, Optional, TypedDict, Union
+
+from langgraph.graph.message import add_messages
+from pydantic import BaseModel, Field
+
+
+class AnalysisPlan(BaseModel):
+    """분석 계획"""
+
+    analysis_plan: List[str]
+
+
+class DateRange(BaseModel):
+    """날짜 범위"""
+
+    start_date: str = Field(..., description="시작일 (YYYY-MM-DD 형식)")
+    end_date: str = Field(..., description="종료일 (YYYY-MM-DD 형식)")
+
+
+class HealthAnalysisResult(BaseModel):
+    """LLM이 반환할 건강 분석 결과의 구조"""
+
+    summary: str = Field(..., description="건강 분석 요약")
+    insights: List[str] = Field(
+        ..., description="추출된 건강 상태 관련 주요 패턴 및 통찰"
+    )
+    additional_analysis_needed: bool = Field(
+        ..., description="추가 분석이 필요한지 여부"
+    )
+    additional_analysis_targets: Optional[List[str]] = Field(
+        None, description="추가 분석이 필요한 경우, 어떤 데이터를 조회해야 하는지 목록"
+    )
+
+
+class ToolHistory(TypedDict):
+    """도구 사용 이력"""
+
+    name: str
+    arguments: Dict[str, Union[int, str, date]]
+    status: str
+
+
+class AgentState(TypedDict):
+    """에이전트 상태"""
+
+    user_query: str
+    analysis_plan: Optional[List[str]]
+    messages: Annotated[list, add_messages]
+    tool_needed: bool = True
+    user_id: int
+    start_date: Optional[date]
+    end_date: Optional[date]
+    user_timezone: Optional[str]
+    today: Optional[date]
+
+    analysis_history: Optional[List[HealthAnalysisResult]]
+    tool_history: Optional[List[ToolHistory]]
+
+
+def save_analysis_result(state: AgentState, result: HealthAnalysisResult):
+    if state.get("analysis_history") is None:
+        state["analysis_history"] = []
+    state["analysis_history"].append(result)

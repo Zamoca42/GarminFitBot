@@ -23,9 +23,10 @@ LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING")
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "gramin-fit-bot")
 
-# RabbitMQ 설정
+# Redis 설정
 BROKER_URL = os.getenv("BROKER_URL", "amqp://guest:guest@localhost:5672//")
 RESULT_BACKEND = os.getenv("RESULT_BACKEND", "rpc://")
+DEFAULT_DEDUP_TTL = int(os.getenv("DEFAULT_DEDUP_TTL", "300"))
 
 # JWT 설정
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")

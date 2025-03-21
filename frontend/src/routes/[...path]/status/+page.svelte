@@ -3,13 +3,24 @@
 	import { page } from '$app/state';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import type { TaskName, TaskDisplayInfo, CollectorResult, TaskResult } from '$lib/type';
+	import { marked } from 'marked';
 
 	export let data;
 
+	marked.setOptions({
+		breaks: true,
+		gfm: true
+	});
+
 	let status = data.status;
 	let intervalId: number;
+	let showModal = false;
+	let mdResult = '';
 
-	$: [_, date, task_name] = page.params.path.split('/');
+	$: taskParts = page.params.path.split('/');
+	$: userKey = taskParts[0];
+	$: date = taskParts[1];
+	$: taskName = taskParts[2];
 
 	const taskDisplayInfo: Record<TaskName, TaskDisplayInfo> = {
 		'collect-fit-data': {
@@ -24,8 +35,8 @@
 				ActivityCollector: '운동 데이터'
 			}
 		},
-		'analyze-health': {
-			title: '건강 분석',
+		'analysis-health': {
+			title: 'AI 분석',
 			description: 'AI가 건강 데이터를 분석하고 있습니다.',
 			resultTitle: '분석 결과'
 		}
@@ -37,7 +48,7 @@
 		resultTitle: '실행 결과'
 	};
 
-	$: currentTask = (task_name && taskDisplayInfo[task_name as TaskName]) || defaultTaskInfo;
+	$: currentTask = (taskName && taskDisplayInfo[taskName as TaskName]) || defaultTaskInfo;
 
 	$: statusInfo = {
 		PENDING: {
@@ -63,7 +74,7 @@
 	}[status.status];
 
 	function formatResult(result: TaskResult): CollectorResult[] {
-		if (task_name === 'collect-fit-data' && typeof result === 'object') {
+		if (taskName === 'collect-fit-data' && typeof result === 'object') {
 			const collectors = Object.keys(currentTask.collectorMapping || {});
 			return collectors.map((collector) => ({
 				name: (currentTask.collectorMapping?.[collector] ?? collector) as string,
@@ -75,6 +86,15 @@
 			}));
 		}
 		return [];
+	}
+
+	function openModal(result: string) {
+		mdResult = result;
+		showModal = true;
+	}
+
+	function closeModal() {
+		showModal = false;
 	}
 
 	onMount(() => {
@@ -124,7 +144,7 @@
 					<div class="mt-4 rounded-md bg-green-50 p-4">
 						<h3 class="text-lg font-medium text-green-800">{currentTask.resultTitle}</h3>
 
-						{#if task_name === 'collect-fit-data'}
+						{#if taskName === 'collect-fit-data'}
 							<div class="mt-4">
 								<table class="min-w-full">
 									<thead>
@@ -153,6 +173,18 @@
 									</tbody>
 								</table>
 							</div>
+						{:else if taskName === 'analysis-health' && typeof status.result === 'string'}
+							<div class="mt-4">
+								<div class="max-h-60 overflow-y-auto whitespace-pre-wrap text-sm text-green-700">
+									{status.result?.substring(0, 250)}...
+								</div>
+								<button
+									class="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+									on:click={() => typeof status.result === 'string' && openModal(status.result)}
+								>
+									전체 분석 결과 보기
+								</button>
+							</div>
 						{:else}
 							<pre class="mt-2 whitespace-pre-wrap text-sm text-green-700">
                 {JSON.stringify(status.result, null, 2)}
@@ -179,3 +211,44 @@
 		</div>
 	</div>
 </div>
+
+{#if showModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+		<div
+			class="scrollbar-hide max-h-[90vh] w-full max-w-4xl overflow-y-auto scroll-smooth rounded-lg bg-white p-6 shadow-xl"
+		>
+			<div class="mb-4 flex items-center justify-end">
+				<button class="text-gray-500 hover:text-gray-700" on:click={closeModal} aria-label="닫기">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-6 w-6"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
+					</svg>
+				</button>
+			</div>
+			<div class="prose prose-sm md:prose-base max-w-none">
+				{@html marked(mdResult)}
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	/* 스크롤바 숨기기 */
+	.scrollbar-hide {
+		-ms-overflow-style: none; /* IE and Edge */
+		scrollbar-width: none; /* Firefox */
+	}
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none; /* Chrome, Safari, Opera */
+	}
+</style>

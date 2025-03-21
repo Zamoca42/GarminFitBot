@@ -19,3 +19,14 @@ async def request_data_collection(
     카카오 챗봇에서 데이터 수집 작업 요청
     """
     return await controller.request_data_collection(request)
+
+
+@router.post("/health/analysis", response_model=KakaoResponse)
+async def request_health_analysis(
+    request: KakaoRequest,
+    controller: KakaoController = Depends(get_kakao_controller),
+):
+    """
+    카카오 챗봇에서 건강 분석 작업 요청
+    """
+    return await controller.request_health_analysis(request)
