@@ -4,15 +4,23 @@ import { error } from '@sveltejs/kit';
 
 export const load = async ({ params }) => {
   try {
-    const [user_key, date, task_name] = params.path.split('/');
+    const path = params.path.split('/');
+    const userKey = path[0];
+    const date = path[1];
+    const taskName = path[2];
 
-    if (!user_key || !date || !task_name) {
+    let additionalPath = '';
+    if (path.length > 3) {
+      additionalPath = '_' + path.slice(3).join('_');
+    }
+
+    if (!userKey || !date || !taskName) {
       throw error(400, '잘못된 URL 형식입니다');
     }
-    
-    const task_id = `${user_key}_${date}_${task_name}`;
-    
-    const response = await fetch(`${PUBLIC_API_URL}/task/${task_id}/status`);
+
+    const taskId = `${userKey}_${date}_${taskName}${additionalPath}`;
+
+    const response = await fetch(`${PUBLIC_API_URL}/task/${taskId}/status`);
     const data = await response.json();
 
     if (!response.ok) {
@@ -23,7 +31,7 @@ export const load = async ({ params }) => {
 
     return {
       status: data.data as TaskStatusResponse,
-      task_id
+      task_id: taskId
     };
   } catch {
     throw error(500, {
