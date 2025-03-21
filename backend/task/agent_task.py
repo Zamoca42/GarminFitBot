@@ -17,38 +17,39 @@ logger = logging.getLogger(__name__)
 class HealthQueryTask(DatabaseTask):
     """건강 데이터 AI 분석 태스크"""
 
-    name = "analysis_health_query"
+    name = "analysis-health"
+    expires = 86400
 
     def run(
         self,
         kakao_client_id: str,
         query: str,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
+        user_timezone: Optional[str] = None,
     ) -> Dict:
         """건강 데이터 AI 분석"""
         try:
             user = self._get_user(kakao_client_id)
-            agent = create_agent(session=self.session)
-
-            return agent.run(
-                query=query, user_id=user.id, start_date=start_date, end_date=end_date
+            agent = create_agent()
+            final_result = agent.run(
+                query=query, user_id=user.id, user_timezone=user_timezone
             )
+
+            return final_result["messages"][-1].content
         except Exception as e:
             raise Exception(f"에러가 발생했습니다: {str(e)}")
 
-    def _get_user(self, kakao_user_id: str) -> User:
+    def _get_user(self, kakao_client_id: str) -> User:
         """사용자 정보 조회"""
         result = self.session.execute(
-            select(User).where(User.kakao_client_id == kakao_user_id)
+            select(User).where(User.kakao_client_id == kakao_client_id)
         )
         user = result.scalar_one_or_none()
 
         if not user:
             logger.warning(
-                f"카카오톡 유저 ID {kakao_user_id}에 해당하는 사용자를 찾을 수 없음"
+                f"카카오톡 유저 ID {kakao_client_id}에 해당하는 사용자를 찾을 수 없음"
             )
-            error_response = f"{kakao_user_id}를 찾을 수 없습니다."
+            error_response = f"{kakao_client_id}를 찾을 수 없습니다."
             raise Exception(error_response)
 
         return user

@@ -18,33 +18,33 @@ logger = logging.getLogger(__name__)
 class GarminDataCollectionTask(DatabaseTask):
     """Garmin 데이터 수집 태스크"""
 
-    name = "collect_user_fit_data"
+    name = "collect-fit-data"
     expires = 86400
 
-    def run(self, kakao_user_id: str, target_date: str, user_timezone: str):
+    def run(self, kakao_client_id: str, target_date: str, user_timezone: str):
         """메인 실행 메서드"""
-        logger.info(f"사용자 {kakao_user_id}의 Garmin 데이터 수집 시작")
+        logger.info(f"사용자 {kakao_client_id}의 Garmin 데이터 수집 시작")
 
         try:
-            user = self._get_user(kakao_user_id)
+            user = self._get_user(kakao_client_id)
             garmin_client = self._create_garmin_client(user)
             self._validate_sync_time(garmin_client, target_date, user_timezone)
             result = self._collect_data(garmin_client, user.id, target_date)
             return result
         except Exception as e:
-            self._handle_error(e, kakao_user_id)
+            self._handle_error(e, kakao_client_id)
             raise
 
-    def _get_user(self, kakao_user_id: str) -> User:
+    def _get_user(self, kakao_client_id: str) -> User:
         """사용자 정보 조회"""
         result = self.session.execute(
-            select(User).where(User.kakao_client_id == kakao_user_id)
+            select(User).where(User.kakao_client_id == kakao_client_id)
         )
         user = result.scalar_one_or_none()
 
         if not user:
             logger.warning(
-                f"카카오톡 유저 ID {kakao_user_id}에 해당하는 사용자를 찾을 수 없음"
+                f"카카오톡 유저 ID {kakao_client_id}에 해당하는 사용자를 찾을 수 없음"
             )
             raise Exception("데이터를 수집할 수 없습니다.")
 
@@ -135,9 +135,11 @@ class GarminDataCollectionTask(DatabaseTask):
             )
             raise e
 
-    def _handle_error(self, error: Exception, kakao_user_id: str) -> None:
+    def _handle_error(self, error: Exception, kakao_client_id: str) -> None:
         """오류 처리"""
-        logger.error(f"사용자 {kakao_user_id}의 데이터 수집 중 오류 발생: {str(error)}")
+        logger.error(
+            f"사용자 {kakao_client_id}의 데이터 수집 중 오류 발생: {str(error)}"
+        )
         self.update_state(
             state=states.FAILURE,
             meta={

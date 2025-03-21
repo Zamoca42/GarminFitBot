@@ -276,13 +276,16 @@ class HealthAnalysisAgent:
             for history in state["analysis_history"]:
                 past_insights.extend(history.insights)
 
+            joined_summaries = " ".join(past_summaries)
+            joined_insights = "- " + "\n- ".join(past_insights)
+
             human_message = HumanMessage(
                 content=f"""
             # 📌 요약
-            {" ".join(past_summaries)}
+            {joined_summaries}
 
             # 🔍 주요 인사이트
-            - {"\n- ".join(past_insights)}
+            - {joined_insights}
 
             위 데이터를 기반으로 건강 피드백과 개선 방안을 Markdown 형식으로 작성하세요.
             """
@@ -364,7 +367,7 @@ class HealthAnalysisAgent:
         query: str,
         user_id: int,
         user_timezone: Optional[str] = None,
-    ) -> str:
+    ):
         """에이전트 실행"""
         try:
             initial_state = self.create_initial_state(
