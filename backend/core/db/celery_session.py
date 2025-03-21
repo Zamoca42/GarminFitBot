@@ -34,7 +34,9 @@ def with_db_context(func):
 class DatabaseTask(Task):
     """데이터베이스 세션을 관리하는 Celery Task"""
 
-    _session = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._session = None
 
     @property
     def session(self) -> Session:

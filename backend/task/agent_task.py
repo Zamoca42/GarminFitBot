@@ -1,7 +1,6 @@
 """에이전트 관련 Celery 태스크"""
 
 import logging
-from datetime import date
 from typing import Dict, Optional
 
 from sqlalchemy import select
@@ -9,10 +8,9 @@ from sqlalchemy import select
 from app.agent.react_agent import create_agent
 from app.model.user import User
 from core.db import DatabaseTask
-from task import celery_app
+from core.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
-
 
 class HealthQueryTask(DatabaseTask):
     """건강 데이터 AI 분석 태스크"""
@@ -53,6 +51,5 @@ class HealthQueryTask(DatabaseTask):
             raise Exception(error_response)
 
         return user
-
 
 analysis_health_query = celery_app.register_task(HealthQueryTask())

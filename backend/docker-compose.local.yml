@@ -7,7 +7,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly no
     networks:
       - app-network
 
@@ -31,7 +31,7 @@ services:
       dockerfile: docker/Dockerfile.celery
     volumes:
       - .:/app
-    command: celery -A task.celery_app worker --loglevel=info --pool=solo
+    command: celery -A core.celery_app worker --loglevel=info --pool=solo
     depends_on:
       - redis
     networks:
@@ -43,7 +43,7 @@ services:
       dockerfile: docker/Dockerfile.celery
     volumes:
       - .:/app
-    command: celery -A task.celery_app beat --loglevel=info
+    command: celery -A core.celery_app beat --loglevel=info
     depends_on:
       - redis
       - celery_worker
@@ -56,7 +56,7 @@ services:
       dockerfile: docker/Dockerfile.celery
     volumes:
       - .:/app
-    command: celery -A task.celery_app flower --port=5555
+    command: celery -A core.celery_app flower --port=5555
     ports:
       - "5555:5555"
     depends_on:

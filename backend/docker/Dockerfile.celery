@@ -14,4 +14,4 @@ ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Command to run Celery worker
-CMD ["celery", "-A", "task.celery_app", "worker", "--loglevel=info"] 
+CMD ["celery", "-A", "core.celery_app", "worker", "--loglevel=info"] 

@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from core.db import DatabaseTask, with_db_context
-from task import celery_app
+from core.celery_app import celery_app
 
 
 class TimeSeriesPartitionManager:
