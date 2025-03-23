@@ -9,6 +9,7 @@ celery_app = Celery(
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
     include=["task.agent_task", "task.garmin_collector", "task.partition_manager"],
+    result_persistent=True,
 )
 
 # Celery 설정
@@ -18,7 +19,7 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="Asia/Seoul",
     enable_utc=False,
-    worker_max_tasks_per_child=1000,
+    worker_max_tasks_per_child=1,
     broker_connection_retry_on_startup=True,
     broker_connection_timeout=30,
     broker_pool_limit=10,

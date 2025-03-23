@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from core.db import DatabaseTask, with_db_context
 from core.celery_app import celery_app
+from core.db import DatabaseTask, with_db_context
 
 
 class TimeSeriesPartitionManager:

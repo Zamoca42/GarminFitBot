@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.authentication import AuthenticationMiddleware
 
 from api.common.schema import ResponseModel
@@ -38,6 +39,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+Instrumentator().instrument(app).expose(app)
 
 # CORS 설정
 app.add_middleware(
