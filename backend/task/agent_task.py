@@ -7,10 +7,11 @@ from sqlalchemy import select
 
 from app.agent.react_agent import create_agent
 from app.model.user import User
-from core.db import DatabaseTask
 from core.celery_app import celery_app
+from core.db import DatabaseTask
 
 logger = logging.getLogger(__name__)
+
 
 class HealthQueryTask(DatabaseTask):
     """건강 데이터 AI 분석 태스크"""
@@ -51,5 +52,6 @@ class HealthQueryTask(DatabaseTask):
             raise Exception(error_response)
 
         return user
+
 
 analysis_health_query = celery_app.register_task(HealthQueryTask())

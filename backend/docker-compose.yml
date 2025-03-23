@@ -1,22 +1,10 @@
 services:
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly no
-    networks:
-      - app-network
-
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile
     ports:
       - "8000:8000"
-    depends_on:
-      - redis
     networks:
       - app-network
 
@@ -24,8 +12,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.celery
-    depends_on:
-      - redis
+    command: celery -A core.celery_app worker --loglevel=info --pool=solo -E
     networks:
       - app-network
 
@@ -35,7 +22,7 @@ services:
       dockerfile: docker/Dockerfile.celery
     command: celery -A core.celery_app beat --loglevel=info
     depends_on:
-      - redis
+      - celery_worker
     networks:
       - app-network
 
@@ -43,17 +30,13 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.celery
-    command: celery -A core.celery_app flower --port=5555
+    command: celery -A core.celery_app flower --port=5555 --persistent=True --db=flower.db
     ports:
       - "5555:5555"
     depends_on:
       - celery_worker
-      - redis
     networks:
       - app-network
-
-volumes:
-  redis_data:
 
 networks:
   app-network:

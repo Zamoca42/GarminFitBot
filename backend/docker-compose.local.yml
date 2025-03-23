@@ -31,7 +31,7 @@ services:
       dockerfile: docker/Dockerfile.celery
     volumes:
       - .:/app
-    command: celery -A core.celery_app worker --loglevel=info --pool=solo
+    command: celery -A core.celery_app worker --loglevel=info --pool=solo -E
     depends_on:
       - redis
     networks:
@@ -56,7 +56,7 @@ services:
       dockerfile: docker/Dockerfile.celery
     volumes:
       - .:/app
-    command: celery -A core.celery_app flower --port=5555
+    command: celery -A core.celery_app flower --port=5555 --persistent=True --db=flower.db
     ports:
       - "5555:5555"
     depends_on:

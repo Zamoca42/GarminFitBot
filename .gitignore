@@ -360,3 +360,6 @@ pyrightconfig.json
 grafana-data/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,node,svelte,linux,macos,vercel
+
+flower.db
+prometheus.yml

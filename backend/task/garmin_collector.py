@@ -9,8 +9,8 @@ from sqlalchemy import select
 
 from app.model import User
 from app.service import GarminDataCollectorService, TokenService
-from core.db import DatabaseTask
 from core.celery_app import celery_app
+from core.db import DatabaseTask
 
 logger = logging.getLogger(__name__)
 
@@ -148,5 +148,6 @@ class GarminDataCollectionTask(DatabaseTask):
                 "traceback": traceback.format_exc(),
             },
         )
+
 
 collect_fit_data = celery_app.register_task(GarminDataCollectionTask())
