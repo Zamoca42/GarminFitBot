@@ -27,6 +27,7 @@ services:
       - app-network
 
   flower:
+    profiles: ["optional"]
     build:
       context: .
       dockerfile: docker/Dockerfile.celery
