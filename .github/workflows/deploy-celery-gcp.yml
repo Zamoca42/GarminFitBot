@@ -52,11 +52,10 @@ jobs:
           GCP_USERNAME: ${{ secrets.GCP_USERNAME }}
           GCP_SSH_KEY: ${{ secrets.GCP_SSH_KEY }}
         run: |
-          DEPLOY_PATH="/home/$GCP_USERNAME/app/celery"
-          ssh -i ~/.ssh/gcp.key -o StrictHostKeyChecking=no $GCP_USERNAME@$GCP_HOST << ENDSSH
-            cd ${DEPLOY_PATH}
-            docker-compose -f docker-compose.celery.yml down || true
-            docker-compose -f docker-compose.celery.yml -f docker-compose.monitoring.yml up -d --build
-            sleep 5  # 서비스가 시작될 때까지 잠시 대기
-            docker-compose -f docker-compose.celery.yml ps  # 서비스 상태 확인
-          ENDSSH 
+          ssh -i ~/.ssh/gcp.key -o StrictHostKeyChecking=no $GCP_USERNAME@$GCP_HOST "
+            cd /home/$GCP_USERNAME/app/celery && \
+            docker-compose -f docker-compose.celery.yml down || true && \
+            docker-compose -f docker-compose.celery.yml -f docker-compose.monitoring.yml up -d --build && \
+            sleep 5 && \
+            docker-compose -f docker-compose.celery.yml ps
+          "
