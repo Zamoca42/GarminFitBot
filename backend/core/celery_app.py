@@ -1,7 +1,10 @@
 from celery import Celery
 from celery.schedules import crontab
 
-from core.config import BROKER_URL, RESULT_BACKEND
+from core.config import (
+    BROKER_URL,
+    RESULT_BACKEND,
+)
 
 # Celery 앱 생성
 celery_app = Celery(

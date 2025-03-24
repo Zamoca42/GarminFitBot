@@ -1,0 +1,44 @@
+services:
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    volumes:
+      - .:/app
+    command: celery -A core.celery_app worker --loglevel=info --pool=solo -E
+    networks:
+      - app-network
+    restart: always
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    volumes:
+      - .:/app
+    command: celery -A core.celery_app beat --loglevel=info
+    depends_on:
+      - celery_worker
+    networks:
+      - app-network
+    restart: always
+
+  flower:
+    profiles: ["optional"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    volumes:
+      - .:/app
+    command: celery -A core.celery_app flower --port=5555 --persistent=True --db=flower.db
+    ports:
+      - "5555:5555"
+    depends_on:
+      - celery_worker
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge

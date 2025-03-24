@@ -1,4 +1,4 @@
-name: Deploy Backend to EC2
+name: Deploy FastAPI to EC2
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'backend/**'
-      - '.github/workflows/deploy-backend.yml'
+      - '.github/workflows/deploy-fastapi-ec2.yml'
 
 jobs:
   deploy:
@@ -56,8 +56,7 @@ jobs:
           ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST << ENDSSH
             cd ${DEPLOY_PATH}
             docker-compose down --volumes --remove-orphans || true
-            docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml build
-            docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+            docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --build
             sleep 5  # 서비스가 시작될 때까지 잠시 대기
             docker-compose ps  # 서비스 상태 확인
           ENDSSH

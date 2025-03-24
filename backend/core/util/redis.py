@@ -1,9 +1,9 @@
 import redis.asyncio as redis
 
-from core.config import BROKER_URL, DEFAULT_DEDUP_TTL
+from core.config import DEFAULT_DEDUP_TTL, RESULT_BACKEND
 from core.util.task_id import generate_redis_dedup_key
 
-redis_client = redis.Redis.from_url(BROKER_URL)
+redis_client = redis.Redis.from_url(RESULT_BACKEND)
 
 
 async def is_duplicate_request(task_id: str, ttl: int = DEFAULT_DEDUP_TTL) -> bool:
