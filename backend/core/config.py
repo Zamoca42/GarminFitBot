@@ -3,6 +3,7 @@ import os
 from typing import List
 
 from dotenv import load_dotenv
+from kombu.utils.url import safequote
 
 # .env 파일 로드
 load_dotenv(".env", override=True)
@@ -23,8 +24,28 @@ LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING")
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "gramin-fit-bot")
 
-# Redis 설정
-BROKER_URL = os.getenv("BROKER_URL", "amqp://guest:guest@localhost:5672//")
+aws_access_key = safequote(os.getenv("AWS_ACCESS_KEY"))
+aws_secret_key = safequote(os.getenv("AWS_SECRET_KEY"))
+
+SQS_BROKER_URL = "sqs://{aws_access_key}:{aws_secret_key}@".format(
+    aws_access_key=aws_access_key,
+    aws_secret_key=aws_secret_key,
+)
+
+# Celery 설정
+BROKER_URL = os.getenv("BROKER_URL", "redis://redis:6379/0")
+BROKER_TRANSPORT_OPTIONS = {
+    "region": os.getenv("AWS_REGION", "ap-northeast-2"),
+    "visibility_timeout": int(os.getenv("SQS_VISIBILITY_TIMEOUT", "3600")),
+    "polling_interval": int(os.getenv("SQS_POLLING_INTERVAL", "1")),
+    "predefined_queues": {
+        "celery": {
+            "url": "https://sqs.ap-northeast-2.amazonaws.com/571600833731/celery",
+            "access_key_id": aws_access_key,
+            "secret_access_key": aws_secret_key,
+        }
+    },
+}
 RESULT_BACKEND = os.getenv("RESULT_BACKEND", "rpc://")
 DEFAULT_DEDUP_TTL = int(os.getenv("DEFAULT_DEDUP_TTL", "300"))
 
