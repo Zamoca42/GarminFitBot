@@ -1,10 +1,17 @@
-from celery import Celery
+import logging
+
+import redis
+from celery import Celery, signals
 from celery.schedules import crontab
 
 from core.config import (
     BROKER_URL,
     RESULT_BACKEND,
 )
+
+logger = logging.getLogger(__name__)
+
+sync_redis_client = redis.Redis.from_url(RESULT_BACKEND, decode_responses=True)
 
 # Celery 앱 생성
 celery_app = Celery(
@@ -35,3 +42,21 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(day_of_month=20, hour=2, minute=0),
     },
 }
+
+
+@signals.task_prerun.connect
+def on_task_start(*args, **kwargs):
+    try:
+        sync_redis_client.incr("celery:active_tasks")
+        logger.info("Task started, active tasks count increased")
+    except Exception as e:
+        logger.error(f"Error increasing active tasks count: {e}")
+
+
+@signals.task_postrun.connect
+def on_task_end(*args, **kwargs):
+    try:
+        sync_redis_client.decr("celery:active_tasks")
+        logger.info("Task ended, active tasks count decreased")
+    except Exception as e:
+        logger.error(f"Error decreasing active tasks count: {e}")
