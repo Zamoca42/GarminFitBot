@@ -24,8 +24,8 @@ LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING")
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "gramin-fit-bot")
 
-aws_access_key = safequote(os.getenv("AWS_ACCESS_KEY"))
-aws_secret_key = safequote(os.getenv("AWS_SECRET_KEY"))
+aws_access_key = safequote(os.getenv("AWS_ACCESS_KEY_ID"))
+aws_secret_key = safequote(os.getenv("AWS_SECRET_ACCESS_KEY"))
 
 SQS_BROKER_URL = "sqs://{aws_access_key}:{aws_secret_key}@".format(
     aws_access_key=aws_access_key,
