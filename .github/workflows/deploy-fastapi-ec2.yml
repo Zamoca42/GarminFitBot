@@ -46,6 +46,21 @@ jobs:
             --exclude='*.pyc' \
             backend/ $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/app/backend/
 
+      - name: Create Docker network
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
+            if ! docker network inspect app-network >/dev/null 2>&1; then
+              docker network create app-network
+              echo 'Created app-network'
+            else
+              echo 'app-network already exists'
+            fi
+          "
+
       - name: Deploy and restart services
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
