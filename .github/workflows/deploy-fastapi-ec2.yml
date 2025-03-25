@@ -55,7 +55,7 @@ jobs:
           ssh -i ~/.ssh/ec2.key -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
             cd /home/$EC2_USERNAME/app/backend && \
             docker-compose down --volumes --remove-orphans || true && \
-            docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile production up -d --build && \
+            docker-compose --profile production up -d --build && \
             sleep 5 && \
             docker-compose ps
           "

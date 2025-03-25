@@ -8,7 +8,7 @@ services:
     networks:
       - app-network
     restart: always
-  
+
   celery_beat:
     profiles: ["production"]
     build:
@@ -34,6 +34,29 @@ services:
     networks:
       - app-network
     restart: always
+
+  # Monitoring services
+  node_exporter:
+    profiles: ["production"]
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - ./prometheus/prometheus.yml:/prometheus/prometheus.yml
+    networks:
+      - app-network
+
+  prometheus:
+    profiles: ["production"]
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app-network
+    depends_on:
+      - node_exporter
 
 networks:
   app-network:
