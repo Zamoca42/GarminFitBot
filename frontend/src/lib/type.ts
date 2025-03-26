@@ -1,6 +1,6 @@
 export interface TaskStatusResponse {
   task_id: string;
-  status: 'PENDING' | 'PROGRESS' | 'STARTED' | 'SUCCESS' | 'FAILURE';
+  status: 'PENDING' | 'STARTED' | 'SUCCESS' | 'FAILURE';
   result?: TaskResult;
   error?: {
     [key: string]: string;

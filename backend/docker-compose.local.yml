@@ -19,7 +19,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     depends_on:
       - redis
     networks:
@@ -37,20 +37,8 @@ services:
     networks:
       - app-network
 
-  celery_beat:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.celery
-    volumes:
-      - .:/app
-    command: celery -A core.celery_app beat --loglevel=info
-    depends_on:
-      - redis
-      - celery_worker
-    networks:
-      - app-network
-
   flower:
+    profiles: ["optional"]
     build:
       context: .
       dockerfile: docker/Dockerfile.celery

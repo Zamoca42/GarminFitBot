@@ -12,8 +12,8 @@ from api.common.schema import (
     Template,
     TextCard,
 )
-from core.util.aws import trigger_scale_out_event
 from core.config import FRONTEND_URL
+from core.util.aws import trigger_scale_out_event
 from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
 from task import analysis_health_query, collect_fit_data
@@ -40,7 +40,7 @@ class KakaoController:
                         outputs=[
                             {
                                 "simpleText": SimpleText(
-                                    text="이미 해당 날짜의 데이터 수집이 완료되었습니다."
+                                    text="해당 날짜의 데이터는 이미 수집이 완료되었어요.\n다음 날 다시 요청해 주세요 😊"
                                 )
                             }
                         ]
@@ -53,7 +53,7 @@ class KakaoController:
                             {
                                 "textCard": TextCard(
                                     title="데이터 수집 진행 중",
-                                    description="이미 해당 날짜의 데이터 수집이 진행 중입니다.\n아래 버튼을 클릭하여 진행 상황을 확인하실 수 있습니다.",
+                                    description="이미 데이터 수집이 진행 중이에요!\n아래 버튼을 눌러 현재 상황을 확인해 보세요 👇",
                                     buttons=[
                                         Button(
                                             action="webLink",
@@ -66,7 +66,7 @@ class KakaoController:
                         ]
                     )
                 )
-            
+
             trigger_scale_out_event()
             collect_fit_data.apply_async(
                 kwargs={
@@ -83,7 +83,7 @@ class KakaoController:
                         {
                             "textCard": TextCard(
                                 title="데이터 수집 시작",
-                                description="데이터 수집이 시작되었습니다.\n작업 상태를 확인하려면 아래 버튼을 클릭해주세요.",
+                                description="데이터 수집을 시작했어요!\n작업 상태는 아래 버튼에서 확인하실 수 있어요 👍",
                                 buttons=[
                                     Button(
                                         action="webLink",
@@ -124,7 +124,7 @@ class KakaoController:
                             {
                                 "textCard": TextCard(
                                     title="분석 중복 요청",
-                                    description="이미 분석이 진행 되어 중복 요청을 받지 않습니다.",
+                                    description="이미 해당 요청에 대한 분석이 진행 중이에요 😊\n결과는 아래 버튼을 눌러 확인하실 수 있어요.",
                                     buttons=[
                                         Button(
                                             action="webLink",
@@ -145,7 +145,7 @@ class KakaoController:
                             {
                                 "textCard": TextCard(
                                     title="분석 완료",
-                                    description="분석이 완료되었습니다.\n아래 버튼을 클릭하여 결과를 확인하실 수 있습니다.",
+                                    description="분석이 모두 완료되었어요!\n아래 버튼을 눌러 결과를 확인해 보세요 🎉",
                                     buttons=[
                                         Button(
                                             action="webLink",
@@ -158,14 +158,14 @@ class KakaoController:
                         ]
                     )
                 )
-            elif task_result.status == "PROGRESS":
+            elif task_result.status == "STARTED":
                 return KakaoResponse(
                     template=Template(
                         outputs=[
                             {
                                 "textCard": TextCard(
-                                    title="분석 진행 중",
-                                    description="분석이 진행 중입니다.\n아래 버튼을 클릭하여 진행 상황을 확인하실 수 있습니다.",
+                                    title="AI가 건강 데이터 분석을 진행 중입니다",
+                                    description="지금 AI가 열심히 분석 중이에요 🔍\n아래 버튼으로 진행 상황을 확인해 보세요.",
                                     buttons=[
                                         Button(
                                             action="webLink",
@@ -178,7 +178,7 @@ class KakaoController:
                         ]
                     )
                 )
-            
+
             trigger_scale_out_event()
             analysis_health_query.apply_async(
                 kwargs={
@@ -194,8 +194,8 @@ class KakaoController:
                     outputs=[
                         {
                             "textCard": TextCard(
-                                title="건강 분석 시작",
-                                description="건강 분석이 시작되었습니다.\n작업 상태를 확인하려면 아래 버튼을 클릭해주세요.",
+                                title="AI가 건강 데이터 분석을 시작합니다",
+                                description="AI가 건강 데이터를 분석하기 시작했어요! 💪\n분석이 끝나면 아래 버튼을 눌러 결과를 확인해 주세요.",
                                 buttons=[
                                     Button(
                                         action="webLink",

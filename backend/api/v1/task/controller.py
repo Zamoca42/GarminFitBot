@@ -1,3 +1,4 @@
+import redis
 from celery.result import AsyncResult
 from fastapi import HTTPException
 from fastapi import status as fastapi_status
@@ -15,11 +16,23 @@ class TaskController:
         try:
             celery_task_id = generate_celery_task_id(task_id)
             task = AsyncResult(celery_task_id)
+            backend_state = task.backend.get_state(celery_task_id)
 
-            if not task:
+            if not task or not backend_state:
                 raise HTTPException(
                     status_code=fastapi_status.HTTP_404_NOT_FOUND,
                     detail="작업을 찾을 수 없습니다.",
+                )
+
+            if backend_state == "PENDING":
+                return ResponseModel(
+                    message="작업 대기 중입니다.",
+                    data=TaskStatusResponse(
+                        task_id=task_id,
+                        status="PENDING",
+                        result=None,
+                        error=None,
+                    ),
                 )
 
             task_status = task.state
