@@ -9,6 +9,8 @@ class AnalysisPlan(BaseModel):
     """분석 계획"""
 
     analysis_plan: List[str]
+    focus_areas: List[str]
+    user_intent: str
 
 
 class DateRange(BaseModel):
@@ -46,6 +48,8 @@ class AgentState(TypedDict):
 
     user_query: str
     analysis_plan: Optional[List[str]]
+    focus_areas: Optional[List[str]]
+    user_intent: Optional[str]
     messages: Annotated[list, add_messages]
     tool_needed: bool = True
     user_id: int

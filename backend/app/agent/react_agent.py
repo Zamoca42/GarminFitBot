@@ -126,6 +126,8 @@ class HealthAnalysisAgent:
             response = self._generate_analysis_plan(state, start_date, end_date)
             return {
                 "analysis_plan": response.analysis_plan,
+                "focus_areas": response.focus_areas,
+                "user_intent": response.user_intent,
                 "start_date": start_date,
                 "end_date": end_date,
             }
@@ -216,8 +218,8 @@ class HealthAnalysisAgent:
 
         return [msg.content for msg in tool_messages]
 
-    def _generate_health_analysis(self, state: AgentState, parsed_tool_data):
-        """AI에게 건강 분석 요청"""
+    def _generate_analysis(self, state: AgentState, parsed_tool_data):
+        """AI에게 건강 데이터 분석 요청"""
         analyze_health_llm = self._initialize_llm().with_structured_output(
             HealthAnalysisResult
         )
@@ -236,8 +238,21 @@ class HealthAnalysisAgent:
             else "이전 분석 결과 없음."
         )
 
+        plan_items = [f"- {plan}" for plan in state["analysis_plan"]]
+        analysis_plan = """
+        분석 계획:
+        """ + "\n".join(plan_items)
+
         previous_analysis_message = SystemMessage(
-            content=f"{previous_analysis_summaries}\n\n위 분석 결과를 고려하여 새로운 건강 분석을 수행하세요."
+            content=f"""
+            사용자 질문의도: {state["user_intent"]}
+            
+            {analysis_plan}
+
+            이전 분석 결과를 고려하여 새로운 건강 분석을 수행하세요.
+
+            {previous_analysis_summaries}
+            """
         )
         response = analyze_health_llm.invoke(
             [system_message, human_message, previous_analysis_message]
@@ -248,12 +263,12 @@ class HealthAnalysisAgent:
 
         return response
 
-    def _create_analyze_health_node(self):
+    def _create_analysis_node(self):
         """도구 실행 결과를 분석하고 추가 분석 여부를 판단하는 노드"""
 
-        def analyze_health(state: AgentState):
+        def analysis(state: AgentState):
             parsed_tool_data = self._extract_tool_execution_results(state)
-            response = self._generate_health_analysis(state, parsed_tool_data)
+            response = self._generate_analysis(state, parsed_tool_data)
             if response is None or response.summary is None:
                 raise ValueError(
                     "Health analysis response is invalid or missing a summary."
@@ -263,13 +278,13 @@ class HealthAnalysisAgent:
                 "messages": state["messages"] + [AIMessage(content=response.summary)]
             }
 
-        return analyze_health
+        return analysis
 
-    def _create_final_report_node(self):
+    def _create_report_node(self):
         """분석 노드의 결과를 최종 보고서로 변환하는 노드"""
         llm = self._initialize_llm()
 
-        def final_report(state: AgentState):
+        def report(state: AgentState):
             past_summaries = [history.summary for history in state["analysis_history"]]
 
             past_insights = []
@@ -281,14 +296,19 @@ class HealthAnalysisAgent:
 
             human_message = HumanMessage(
                 content=f"""
-            # 📌 요약
-            {joined_summaries}
+                # 🏥 ({', '.join(state.get('focus_areas', ['건강']))} 중 사용자 질문 의도에 맞는 단어) 분석 보고서
 
-            # 🔍 주요 인사이트
-            - {joined_insights}
+                ## 🙋 사용자 질문 의도
+                {state.get("user_intent", "최근 건강 상태가 어떤지 알고 싶어합니다.")}
 
-            위 데이터를 기반으로 건강 피드백과 개선 방안을 Markdown 형식으로 작성하세요.
-            """
+                # 📌 요약
+                {joined_summaries}
+
+                # 🔍 주요 인사이트
+                {joined_insights}
+
+                위 데이터를 기반으로 건강 피드백과 개선 방안을 Markdown 형식으로 작성하세요.
+                """
             )
             response = llm.invoke([create_final_report_prompt(), human_message])
 
@@ -296,7 +316,7 @@ class HealthAnalysisAgent:
                 "messages": state["messages"] + [response],
             }
 
-        return final_report
+        return report
 
     def _create_graph(self):
         """그래프 생성"""
@@ -304,8 +324,8 @@ class HealthAnalysisAgent:
         tools_node = ToolNode(tools=self.tools)
         plan_node_title = "plan"
         execute_tool_node_title = "execute_tool"
-        analyze_health_node_title = "analyze_health"
-        final_report_node_title = "final_report"
+        analysis_node_title = "analysis"
+        report_node_title = "report"
         tools_node_title = "tools"
 
         # 그래프 생성
@@ -318,27 +338,34 @@ class HealthAnalysisAgent:
             )
 
             return (
-                execute_tool_node_title
+                "추가 분석 요청"
                 if last_analysis and last_analysis.additional_analysis_needed
-                else final_report_node_title
+                else "리포트 생성"
             )
 
         # 노드 추가
         workflow.add_node(plan_node_title, self._create_plan_node())
-        workflow.add_node(analyze_health_node_title, self._create_analyze_health_node())
+        workflow.add_node(analysis_node_title, self._create_analysis_node())
         workflow.add_node(execute_tool_node_title, self._create_execute_tool_node())
-        workflow.add_node(final_report_node_title, self._create_final_report_node())
+        workflow.add_node(report_node_title, self._create_report_node())
         workflow.add_node(tools_node_title, tools_node)
 
         # 엣지 추가
         workflow.set_entry_point(plan_node_title)
         workflow.add_edge(plan_node_title, execute_tool_node_title)
         workflow.add_edge(execute_tool_node_title, tools_node_title)
-        workflow.add_edge(tools_node_title, analyze_health_node_title)
-        workflow.add_edge(final_report_node_title, END)
+        workflow.add_edge(tools_node_title, analysis_node_title)
+        workflow.add_edge(report_node_title, END)
 
         # 조건 엣지 추가
-        workflow.add_conditional_edges(analyze_health_node_title, custom_tool_condition)
+        workflow.add_conditional_edges(
+            analysis_node_title,
+            custom_tool_condition,
+            {
+                "추가 분석 요청": execute_tool_node_title,
+                "리포트 생성": report_node_title,
+            },
+        )
 
         return workflow.compile()
 
@@ -411,9 +438,6 @@ class HealthAnalysisAgent:
 
 def create_agent() -> HealthAnalysisAgent:
     """건강 분석 에이전트 생성
-
-    Args:
-        session: SQLAlchemy 세션
 
     Returns:
         HealthAnalysisAgent: 초기화된 건강 분석 에이전트
