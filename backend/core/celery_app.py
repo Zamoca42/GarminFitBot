@@ -33,6 +33,7 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
     broker_connection_timeout=30,
     broker_pool_limit=10,
+    task_track_started=True,
 )
 
 # 주기적 작업 스케줄 설정

@@ -18,7 +18,6 @@
 	let mdResult = '';
 
 	$: taskParts = page.params.path.split('/');
-	$: userKey = taskParts[0];
 	$: date = taskParts[1];
 	$: taskName = taskParts[2];
 
@@ -52,15 +51,11 @@
 
 	$: statusInfo = {
 		PENDING: {
-			message: '작업이 존재하지 않습니다...',
+			message: '작업을 대기중 입니다...',
 			color: 'text-gray-500'
 		},
-		PROGRESS: {
-			message: '작업이 진행 중입니다...',
-			color: 'text-yellow-500'
-		},
 		STARTED: {
-			message: '작업이 진행 중입니다...',
+			message: '작업을 시작하였습니다...',
 			color: 'text-blue-500'
 		},
 		SUCCESS: {
@@ -98,7 +93,7 @@
 	}
 
 	onMount(() => {
-		if (['STARTED', 'PROGRESS'].includes(status.status)) {
+		if (['STARTED', 'PENDING'].includes(status.status)) {
 			intervalId = setInterval(async () => {
 				try {
 					const response = await fetch(`${PUBLIC_API_URL}/task/${data.task_id}/status`);
@@ -111,7 +106,7 @@
 				} catch (error) {
 					console.error('상태 확인 중 오류:', error);
 				}
-			}, 3000);
+			}, 1000);
 		}
 	});
 
@@ -202,7 +197,7 @@
 					</div>
 				{/if}
 
-				{#if ['STARTED', 'PROGRESS'].includes(status.status)}
+				{#if ['STARTED', 'PENDING'].includes(status.status)}
 					<div class="mt-4">
 						<div class="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
 					</div>
