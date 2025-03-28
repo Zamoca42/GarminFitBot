@@ -69,11 +69,11 @@ class SleepSession(Base, TimeStampMixin):
     user = relationship("User", back_populates="sleep_sessions")
 
 
-class SleepMovement(Base):
+class SleepMovement(Base, TimeStampMixin):
     __tablename__ = "sleep_movement"
     __table_args__ = (
-        PrimaryKeyConstraint("sleep_session_id", "start_time_local"),
-        {"postgresql_partition_by": "RANGE (start_time_local)"},
+        PrimaryKeyConstraint("sleep_session_id", "created_at", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (created_at)"},
     )
 
     sleep_session_id = Column(
@@ -87,13 +87,13 @@ class SleepMovement(Base):
     session = relationship("SleepSession", back_populates="movements", uselist=False)
 
 
-class SleepHRVReading(Base):
+class SleepHRVReading(Base, TimeStampMixin):
     """수면 중 HRV 상세 측정값"""
 
     __tablename__ = "sleep_hrv_readings"
     __table_args__ = (
-        PrimaryKeyConstraint("sleep_session_id", "start_time_local"),
-        {"postgresql_partition_by": "RANGE (start_time_local)"},
+        PrimaryKeyConstraint("sleep_session_id", "created_at", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (created_at)"},
     )
 
     sleep_session_id = Column(

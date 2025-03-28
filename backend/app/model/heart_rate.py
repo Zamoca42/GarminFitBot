@@ -36,11 +36,11 @@ class HeartRateDaily(Base, TimeStampMixin):
     user = relationship("User", back_populates="heart_rate_dailies")
 
 
-class HeartRateReading(Base):
+class HeartRateReading(Base, TimeStampMixin):
     __tablename__ = "heart_rate_readings"
     __table_args__ = (
-        PrimaryKeyConstraint("daily_summary_id", "start_time_local"),
-        {"postgresql_partition_by": "RANGE (start_time_local)"},
+        PrimaryKeyConstraint("daily_summary_id", "created_at", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (created_at)"},
     )
 
     daily_summary_id = Column(

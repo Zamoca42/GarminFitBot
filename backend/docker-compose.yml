@@ -9,18 +9,6 @@ services:
       - app-network
     restart: always
 
-  celery_beat:
-    profiles: ["production"]
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.celery
-    volumes:
-      - .:/app
-    command: celery -A core.celery_app beat --loglevel=info
-    networks:
-      - app-network
-    restart: always
-
   flower:
     profiles: ["optional"]
     build:

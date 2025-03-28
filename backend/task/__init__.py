@@ -9,10 +9,8 @@ Celery 작업 패키지
 
 from .agent_task import analysis_health_query
 from .garmin_collector import collect_fit_data
-from .partition_manager import manage_partitions
 
 __all__ = [
-    "manage_partitions",
     "analysis_health_query",
     "collect_fit_data",
 ]
