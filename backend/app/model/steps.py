@@ -40,11 +40,11 @@ class StepsDaily(Base, TimeStampMixin):
     user = relationship("User", back_populates="steps_dailies")
 
 
-class StepsIntraday(Base):
+class StepsIntraday(Base, TimeStampMixin):
     __tablename__ = "steps_intraday"
     __table_args__ = (
-        PrimaryKeyConstraint("daily_summary_id", "start_time_local"),
-        {"postgresql_partition_by": "RANGE (start_time_local)"},
+        PrimaryKeyConstraint("daily_summary_id", "created_at", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (created_at)"},
     )
 
     daily_summary_id = Column(

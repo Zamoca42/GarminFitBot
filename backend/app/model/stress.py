@@ -36,11 +36,11 @@ class StressDaily(Base, TimeStampMixin):
     user = relationship("User", back_populates="stress_dailies")
 
 
-class StressReading(Base):
+class StressReading(Base, TimeStampMixin):
     __tablename__ = "stress_readings"
     __table_args__ = (
-        PrimaryKeyConstraint("daily_summary_id", "start_time_local"),
-        {"postgresql_partition_by": "RANGE (start_time_local)"},
+        PrimaryKeyConstraint("daily_summary_id", "created_at", "start_time_local"),
+        {"postgresql_partition_by": "RANGE (created_at)"},
     )
 
     daily_summary_id = Column(

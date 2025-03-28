@@ -1,8 +1,5 @@
-import asyncio
 import os
 import sys
-
-from core import celery_app
 
 if __name__ == "__main__":
     # 환경 변수 설정
@@ -10,22 +7,7 @@ if __name__ == "__main__":
 
     # 명령행 인자 처리
     if len(sys.argv) > 1:
-        if sys.argv[1] == "worker":
-            # Celery 작업자 실행
-            celery_app.worker_main(["worker", "--loglevel=info", "-E"])
-        elif sys.argv[1] == "beat":
-            # Celery beat 실행 (스케줄러)
-            celery_app.Beat().run()
-        elif sys.argv[1] == "flower":
-            # Flower 모니터링 도구 실행
-            os.system("celery -A task.celery_app flower")
-        elif sys.argv[1] == "partition":
-            # 파티션 관리 작업 수동 실행
-            from task.partition_manager import manage_partitions
-
-            # 비동기 함수 실행
-            asyncio.run(manage_partitions())
-        elif sys.argv[1] == "agent":
+        if sys.argv[1] == "agent":
             # 에이전트 실행
             if len(sys.argv) < 4:
                 print("사용법: python run_celery.py agent <user_id> <query>")
@@ -83,56 +65,42 @@ if __name__ == "__main__":
                     print("그래프 시각화에 실패했습니다.")
             except Exception as e:
                 print(f"에러가 발생했습니다: {str(e)}")
-        elif sys.argv[1] == "create-partition":
-            # 특정 월의 파티션 수동 생성
-            if len(sys.argv) < 4:
-                print("사용법: python run_celery.py create-partition <year> <month>")
-                sys.exit(1)
+        elif sys.argv[1] == "partition":
+            import psycopg2
+            from core.config import SYNC_DATABASE_URL
 
-            year = int(sys.argv[2])
-            month = int(sys.argv[3])
+            try:
+                conn = psycopg2.connect(SYNC_DATABASE_URL)
+                conn.autocommit = True
+                cur = conn.cursor()
 
-            from task.partition_manager import create_specific_month_partition
+                cur.execute("""
+                    SELECT n.nspname as schema_name
+                    FROM pg_extension e
+                    JOIN pg_namespace n ON n.oid = e.extnamespace
+                    WHERE e.extname = 'pg_partman'
+                """)
+                row = cur.fetchone()
 
-            # 함수 실행
-            create_specific_month_partition(year, month)
-        elif sys.argv[1] == "drop-partition":
-            # 특정 월의 파티션 수동 삭제
-            if len(sys.argv) < 4:
-                print("사용법: python run_celery.py drop-partition <year> <month>")
-                sys.exit(1)
+                if row:
+                    schema_name = row[0]
+                    print(f"pg_partman이 '{schema_name}' 스키마에 설치되어 있습니다.")
 
-            year = int(sys.argv[2])
-            month = int(sys.argv[3])
+                    # 파티션 관리 프로시저 호출
+                    cur.execute(f"CALL {schema_name}.run_maintenance_proc()")
+                    print("파티션 관리 작업이 성공적으로 실행되었습니다.")
+                else:
+                    print("pg_partman 확장이 설치되어 있지 않습니다.")
 
-            from task.partition_manager import drop_specific_month_partition
+                cur.close()
+                conn.close()
 
-            # 함수 실행
-            drop_specific_month_partition(year, month)
-        elif sys.argv[1] == "drop-all":
-            # 모든 테이블 삭제
-            print("⚠️ 주의: 모든 테이블이 삭제됩니다. 계속하시겠습니까? (y/N)")
-            response = input().lower()
-            if response != "y":
-                print("작업이 취소되었습니다.")
-                sys.exit(0)
-
-            from task.partition_manager import drop_all_tables
-
-            # 함수 실행
-            drop_all_tables()
+            except Exception as e:
+                print(f"파티션 관리 작업 실행 중 오류 발생: {str(e)}")
     else:
-        print(
-            "사용법: python run_celery.py [worker|beat|flower|agent|graph-viz|create-partition|drop-partition|drop-all]"
-        )
-        print("  worker: Celery 작업자 실행")
-        print("  beat: Celery 스케줄러 실행")
-        print("  flower: Celery 모니터링 도구 실행")
+        print("사용법: python run_celery.py [agent|graph-viz|partition]")
         print("  agent <user_id> <query>: AI 에이전트 실행")
         print(
             "  graph-viz [output_path]: 에이전트 그래프 시각화 (기본: agent_graph.png)"
         )
         print("  partition: 파티션 관리 작업 수동 실행")
-        print("  create-partition <year> <month>: 특정 월의 파티션 수동 생성")
-        print("  drop-partition <year> <month>: 특정 월의 파티션 수동 삭제")
-        print("  drop-all: 모든 테이블 삭제")

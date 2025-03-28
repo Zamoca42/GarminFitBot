@@ -18,7 +18,7 @@ celery_app = Celery(
     "garmin_fit_bot",
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
-    include=["task.agent_task", "task.garmin_collector", "task.partition_manager"],
+    include=["task.agent_task", "task.garmin_collector"],
     result_persistent=True,
 )
 
@@ -35,14 +35,6 @@ celery_app.conf.update(
     broker_pool_limit=10,
     task_track_started=True,
 )
-
-# 주기적 작업 스케줄 설정
-celery_app.conf.beat_schedule = {
-    "manage_partitions": {
-        "task": "manage_partitions",
-        "schedule": crontab(day_of_month=20, hour=2, minute=0),
-    },
-}
 
 
 @signals.task_prerun.connect
