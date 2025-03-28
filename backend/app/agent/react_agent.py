@@ -241,12 +241,12 @@ class HealthAnalysisAgent:
         plan_items = [f"- {plan}" for plan in state["analysis_plan"]]
         analysis_plan = """
         분석 계획:
-        """ + "\n".join(plan_items)
+        """ + "\n".join(
+            plan_items
+        )
 
         previous_analysis_message = SystemMessage(
-            content=f"""
-            사용자 질문의도: {state["user_intent"]}
-            
+            content=f"""          
             {analysis_plan}
 
             이전 분석 결과를 고려하여 새로운 건강 분석을 수행하세요.
@@ -407,7 +407,6 @@ class HealthAnalysisAgent:
             final_result = graph.invoke(initial_state)
 
             return final_result
-
         except Exception as e:
             import traceback
 

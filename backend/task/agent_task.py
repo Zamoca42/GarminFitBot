@@ -3,6 +3,7 @@
 import logging
 from typing import Dict, Optional
 
+from langchain_core.tracers.langchain import wait_for_all_tracers
 from sqlalchemy import select
 
 from app.agent.react_agent import create_agent
@@ -36,6 +37,8 @@ class HealthQueryTask(DatabaseTask):
             return final_result["messages"][-1].content
         except Exception as e:
             raise Exception(f"에러가 발생했습니다: {str(e)}")
+        finally:
+            wait_for_all_tracers()
 
     def _get_user(self, kakao_client_id: str) -> User:
         """사용자 정보 조회"""
