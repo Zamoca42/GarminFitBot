@@ -87,7 +87,7 @@ class KakaoController:
                                 buttons=[
                                     Button(
                                         action="webLink",
-                                        label="작업 상태 확인",
+                                        label="결과 확인하기",
                                         webLinkUrl=task_status_url,
                                     )
                                 ],
@@ -199,7 +199,7 @@ class KakaoController:
                                 buttons=[
                                     Button(
                                         action="webLink",
-                                        label="작업 상태 확인",
+                                        label="결과 확인하기",
                                         webLinkUrl=task_status_url,
                                     )
                                 ],
