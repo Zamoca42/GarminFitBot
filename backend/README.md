@@ -1,122 +1,87 @@
 # Garmin Fit Bot Backend
 
+## 아키텍쳐
+
+![](https://mermaid.ink/svg/pako:eNqFVm1r01AU_ivhijAhG31J3_JBqJ0VQUGdn0xl3LW3bVialJtUnWOwuaAiyBREN1lFYWwq-zDmJhX8RU36Hzw3N0lvWruVQu495znPec6556ZdR3WrQZCKmob1tN7G1JEe3qiZEnzs3kqL4m5bqqHR1pnX_-v3z_yPg9GbQQ1xBPv0bEI1_8Wx__mH_-Xd47FjFa9iS_P_nLHv7sHo5TfJO3sVAojZ4IupVOV7t6XhL9cfnItZcFfXqth2mNd3971TV8iEe05b8_sD_7AvAWBSwzILjnVMIBrYwQHAe3sC9Y3ckwmAg-3VADDa3vffHIy2jgXA7DKYyD8uBPyvGNC7DG17otdJpDvGT2qLcGN9_4M61ioxY-zo5dfR1jRwtlqAeTt7wwHEnO56h8ei2joxCF3TKsFDSFm3DIPUHYuK0l7v-kfvpbhV4iGZ2Fh7DrNSvi15v13f7U_BLhgKOPVPH_wjN9HGFjEd7Q42W5U21k2pzPaJnliGrYW5vB13eH55onEp08fWWNHm7lm206Jk6f6da0ImShq6rc09YA_R3oGrxSTEpN7P797bweXDszfwfm-Oz09U0cK0o5vareAhVSzThEOYPZJXr0LnToanJ3zLbqs0P3-d3wxuC5aBEcZcjIUtN8O8Ji3xvUqao8uUtEY3KEENlDF3NLfcFZGMGRPuiC1w89mcJI4CeHbxZoQUoikA8aaKPJyZJ4kGfcoTzXToiHAzlEdoHsqGNSGcGULFMLeRUljOoBO6JZbCZ25GM0QnX3PylWRpC2ALZjrRkUR50x1jkwa3eXvT7_8NIwxs24ukKXWp3sFA3NQNQ72Svlks3szJwGdR9Wlbd8gE3CZ1y2yMA6rVUjGVuigAVEH_QrhSKVdzF8HJM4dQOIyIXlGy2fw0XohisyyH3QmLSXjZ2clit-XEucQFiUGNFTnocaRe9PHuxkKRjDqEdrDegB_qdQasIadNOqSGVFiapOdQbLC3xAZAQYe1tGbWkerQHpERtXqtNlKb2LBh1-uCNLKoY3jZdCJIF5uPLCvegizQdJf_MQj-HwQQpK6jZ0hN53IL2UJRyWcz6VQmW1BktIbUbHohk8sUU7mMUirlU-nShoyeB5yphWJRKeXzhWw6VUgrhUxGRi3Kagn1wSuL0IrVMx2kljb-Afk1EIY)
+
+[Mermaid 에디터에서 다이어그램 보기](https://mermaid.live/edit#pako:eNqFVm1r01AU_ivhijAhG31J3_JBqJ0VQUGdn0xl3LW3bVialJtUnWOwuaAiyBREN1lFYWwq-zDmJhX8RU36Hzw3N0lvWruVQu495znPec6556ZdR3WrQZCKmob1tN7G1JEe3qiZEnzs3kqL4m5bqqHR1pnX_-v3z_yPg9GbQQ1xBPv0bEI1_8Wx__mH_-Xd47FjFa9iS_P_nLHv7sHo5TfJO3sVAojZ4IupVOV7t6XhL9cfnItZcFfXqth2mNd3971TV8iEe05b8_sD_7AvAWBSwzILjnVMIBrYwQHAe3sC9Y3ckwmAg-3VADDa3vffHIy2jgXA7DKYyD8uBPyvGNC7DG17otdJpDvGT2qLcGN9_4M61ioxY-zo5dfR1jRwtlqAeTt7wwHEnO56h8ei2joxCF3TKsFDSFm3DIPUHYuK0l7v-kfvpbhV4iGZ2Fh7DrNSvi15v13f7U_BLhgKOPVPH_wjN9HGFjEd7Q42W5U21k2pzPaJnliGrYW5vB13eH55onEp08fWWNHm7lm206Jk6f6da0ImShq6rc09YA_R3oGrxSTEpN7P797bweXDszfwfm-Oz09U0cK0o5vareAhVSzThEOYPZJXr0LnToanJ3zLbqs0P3-d3wxuC5aBEcZcjIUtN8O8Ji3xvUqao8uUtEY3KEENlDF3NLfcFZGMGRPuiC1w89mcJI4CeHbxZoQUoikA8aaKPJyZJ4kGfcoTzXToiHAzlEdoHsqGNSGcGULFMLeRUljOoBO6JZbCZ25GM0QnX3PylWRpC2ALZjrRkUR50x1jkwa3eXvT7_8NIwxs24ukKXWp3sFA3NQNQ72Svlks3szJwGdR9Wlbd8gE3CZ1y2yMA6rVUjGVuigAVEH_QrhSKVdzF8HJM4dQOIyIXlGy2fw0XohisyyH3QmLSXjZ2clit-XEucQFiUGNFTnocaRe9PHuxkKRjDqEdrDegB_qdQasIadNOqSGVFiapOdQbLC3xAZAQYe1tGbWkerQHpERtXqtNlKb2LBh1-uCNLKoY3jZdCJIF5uPLCvegizQdJf_MQj-HwQQpK6jZ0hN53IL2UJRyWcz6VQmW1BktIbUbHohk8sUU7mMUirlU-nShoyeB5yphWJRKeXzhWw6VUgrhUxGRi3Kagn1wSuL0IrVMx2kljb-Afk1EIY)
+
 ## 애플리케이션 구조
 
-본 애플리케이션은 FastAPI와 Celery 서비스로 구성되어 있으며, 서로 다른 서버에 배포할 수 있도록 도커 컴포즈 파일이 분리되어 있습니다.
+본 애플리케이션은 FastAPI 서버로 구성되어 있으며, 로컬 개발 환경과 배포 환경이 분리되어 있습니다.
 
-- `docker-compose.yml`: FastAPI 서버 및 Redis (API 서버 전용)
-- `docker-compose.celery.yml`: Celery worker, beat, flower 및 Redis (Celery 워커 전용)
+- `docker-compose.local.yml`: 로컬 개발 환경용 (Redis 포함)
+- `docker-compose.yml`: 배포 환경용 (Prometheus, Node Exporter 포함)
 
 ## 로컬 개발 환경 설정
 
 ```bash
 # 개발 환경 시작
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## Celery 작업 실행 방법
-
-### 필요 조건
-
-- RabbitMQ 서버 연결 (메시지 브로커로 사용)
-  - 로컬 RabbitMQ 또는 CloudAMQP와 같은 클라우드 서비스
-- Python 환경 설정 완료
-
-### 환경 변수 설정
-
-`.env` 파일에 RabbitMQ 연결 정보 설정:
-
-```
-BROKER_URL=amqps://username:password@hostname/vhost
-RESULT_BACKEND=rpc://
-```
-
-### Celery 작업자 실행
-
-```bash
-# Celery 작업자 실행
-python run_celery.py worker
-
-# Celery 스케줄러 실행 (주기적 작업)
-python run_celery.py beat
-
-# Celery 모니터링 도구 실행 (선택사항)
-python run_celery.py flower
-```
-
-### 수동으로 작업 실행
-
-```bash
-# 오늘 데이터 수집
-python run_celery.py collect 0
-
-# 어제 데이터 수집
-python run_celery.py collect 1
-
-# 파티션 관리 작업 실행
-python run_celery.py partition
+docker-compose -f docker-compose.local.yml up -d
 ```
 
 ## 배포 구조
 
-시스템은 두 개의 서버로 분리되어 배포됩니다:
+시스템은 AWS의 여러 서비스를 활용하여 배포됩니다:
 
-1. **API 서버**: FastAPI 애플리케이션 실행
-2. **Celery 서버**: Celery 작업자, 스케줄러, Flower 대시보드 실행
+1. **API 서버**: AWS EC2에서 FastAPI 애플리케이션 실행
+2. **Redis**: Upstash Redis 사용
+3. **모니터링**: Prometheus + Node Exporter
 
 ### API 서버 배포
 
-GitHub Actions 워크플로우 `.github/workflows/deploy-fastapi.yml`을 통해 자동으로 배포됩니다.
-
-### Celery 서버 배포 (GCP VM)
-
-GitHub Actions 워크플로우 `.github/workflows/deploy-celery-gcp.yml`을 통해 GCP VM에 자동으로 배포됩니다.
+GitHub Actions 워크플로우 `.github/workflows/deploy-fastapi-ec2.yml`을 통해 자동으로 배포됩니다.
 
 특징:
 
 - 시스템 재부팅 시 자동 시작 (systemd 서비스 등록)
 - Docker Compose 컨테이너 restart always 설정
+- Prometheus + Node Exporter를 통한 모니터링
 
 ## 도커 명령어
 
 ```bash
-# FastAPI 서버 시작
-docker-compose -f docker-compose.fastapi.yml up -d
+# 로컬 개발 환경
+docker-compose -f docker-compose.local.yml up -d
+docker-compose -f docker-compose.local.yml down
 
-# Celery 서비스 시작
-docker-compose -f docker-compose.celery.yml up -d
-
-# 서비스 상태 확인
-docker-compose -f docker-compose.fastapi.yml ps
-docker-compose -f docker-compose.celery.yml ps
-
-# 서비스 중지
-docker-compose -f docker-compose.fastapi.yml down
-docker-compose -f docker-compose.celery.yml down
+# 배포 환경
+docker-compose --profile production up -d
+docker-compose --profile production down
 ```
 
-## 주기적 작업 일정
+## 모니터링
 
-- 매일 새벽 3시: 전날 데이터 수집
-- 매일 오전 9시: 당일 데이터 수집
-- 매일 오후 6시: 당일 데이터 업데이트
-- 매월 20일 오전 2시: 데이터베이스 파티션 관리
+### Prometheus + Node Exporter
 
-## 클라우드 RabbitMQ 설정
-
-### CloudAMQP 사용하기
-
-1. [CloudAMQP](https://www.cloudamqp.com/)에서 계정 생성
-2. 새 인스턴스 생성 (무료 또는 유료 플랜)
-3. 인스턴스 생성 후 AMQP URL 복사
-4. `.env` 파일에 BROKER_URL 설정
-
-### 다른 클라우드 RabbitMQ 서비스
-
-- AWS의 Amazon MQ
-- Azure의 Service Bus
-- Google Cloud의 Pub/Sub + RabbitMQ 어댑터
+- Prometheus: `http://your-domain:9090`
+- Node Exporter: `http://your-domain:9100`
 
 ## 개발 환경 설정
 
-(기존 내용 유지)
+1. Python 3.11+ 설치
+2. 가상환경 생성 및 활성화
+
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+```
+
+3. 의존성 설치
+
+```bash
+pip install -r requirements.txt
+```
+
+4. 환경 변수 설정
+
+```bash
+cp .env.example .env
+# .env 파일 수정
+```
+
+5. 서버 실행
+
+```bash
+uvicorn main:app --reload
+```
