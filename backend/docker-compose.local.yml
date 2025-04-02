@@ -7,7 +7,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly no
+    command: redis-server --appendonly no --save
     networks:
       - app-network
 

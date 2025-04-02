@@ -151,7 +151,7 @@ class HealthAnalysisAgent:
 
         messages = [
             HumanMessage(
-                content=f"사용자 아이디 {state['user_id']}의 분석 계획:\n{analysis_plan_string}"
+                content=f"오늘 날짜는 {state['today'].strftime('%Y-%m-%d')}입니다.\n 사용자 아이디 {state['user_id']}의 분석 계획:\n{analysis_plan_string}"
             )
         ]
 
@@ -172,7 +172,7 @@ class HealthAnalysisAgent:
         )
         tools_info = self._extract_tool_metadata()
         system_message = create_execute_tool_prompt(
-            tools_info, state["user_id"], state["tool_history"]
+            tools_info, state["tool_history"]
         )
         valid_messages = [m for m in messages if m is not None]
         return tools_selection_llm.invoke([system_message] + valid_messages)
@@ -275,7 +275,8 @@ class HealthAnalysisAgent:
                 )
             save_analysis_result(state, response)
             return {
-                "messages": state["messages"] + [AIMessage(content=response.summary)]
+                "messages": state["messages"] + [AIMessage(content=response.summary)],
+                "loop_count": state.get("loop_count", 0) + 1,
             }
 
         return analysis
@@ -337,6 +338,9 @@ class HealthAnalysisAgent:
                 state["analysis_history"][-1] if state["analysis_history"] else None
             )
 
+            if state.get("loop_count", 0) >= 7:
+                return "리포트 생성"
+
             return (
                 "추가 분석 요청"
                 if last_analysis and last_analysis.additional_analysis_needed
@@ -386,6 +390,7 @@ class HealthAnalysisAgent:
             "today": today,
             "tool_history": [],
             "analysis_history": [],
+            "loop_count": 0,
         }
 
     @traceable

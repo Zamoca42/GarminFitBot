@@ -58,6 +58,7 @@ class AgentState(TypedDict):
     user_timezone: Optional[str]
     today: Optional[date]
 
+    loop_count: int
     analysis_history: Optional[List[HealthAnalysisResult]]
     tool_history: Optional[List[ToolHistory]]
 

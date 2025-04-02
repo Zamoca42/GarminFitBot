@@ -77,7 +77,7 @@ def create_planner_prompt():
 
 
 def create_execute_tool_prompt(
-    tools_info: list[dict], user_id: int, tool_history: list[ToolHistory]
+    tools_info: list[dict], tool_history: list[ToolHistory]
 ):
     """Planner의 분석 목표를 기반으로 적절한 도구를 선택하는 프롬프트"""
     tools_info_str = json.dumps(tools_info, indent=2, ensure_ascii=False)
@@ -107,8 +107,6 @@ def create_execute_tool_prompt(
         Planner와 이전 대화 내용을 기반으로 **적절한 도구를 선택하세요.**
         🚨 **중요: 이전에 실행한 도구에서 동일한 날짜 범위에 대해 다시 실행하지 않도록 주의하세요!**
         실행된 도구 목록: {executed_tools}
-
-        사용자의 아이디는 {user_id}입니다.
 
         사용할 수 있는 도구는 다음과 같습니다.
         ```json
@@ -186,6 +184,7 @@ def create_health_analyze_prompt():
 
         3. **추가 분석 필요성 판단**
            - 상관관계를 기반으로 **아직 실행하지 않은 도구에 대한 추가 분석 필요성**을 판단하세요.
+           - 특정 시간대별 시계열 데이터를 요청하는 것 대신 일자별 시계열 데이터를 요청하는 것을 선호합니다.
            - 예시:
              - 최대 심박수 급등 → 그 시점의 활동 시계열 또는 스트레스 시계열 데이터가 필요할 수 있음
              - HRV가 불안정한 날 → 수면 시계열 데이터 또는 스트레스 시간대별 변화가 필요한지 확인
@@ -226,6 +225,18 @@ def create_health_analyze_prompt():
                     "additional_analysis_targets": null
                 }
             ```
+        
+        📌 데이터가 부족한 경우 예시
+            ```json
+            {
+                "summary": "최근 데이터가 부족해 분석을 진행할 수 없습니다.",
+                "insights": [
+                    "데이터가 부족해 분석을 진행할 수 없습니다."
+                ],
+                    "additional_analysis_needed": false,
+                    "additional_analysis_targets": null
+                }
+            ```
         """
     )
 
@@ -237,6 +248,7 @@ def create_final_report_prompt():
         content="""
         당신은 사용자의 건강 데이터를 분석하는 전문가입니다.
         사용자의 최근 건강 분석 결과와 질문 의도를 바탕으로 **최종 건강 분석 보고서**를 Markdown 형식으로 작성하세요.
+        데이터가 부족한 경우 데이터가 부족함을 명시하세요. 없는 데이터는 명시하지 않습니다.
 
         📌 반드시 아래 지침을 따르세요:
 
@@ -258,6 +270,7 @@ def create_final_report_prompt():
 
         6. **"주요 인사이트"는 날짜별로 그룹화하되, 각 날짜별로 수면, 활동량, 스트레스, 심박수 등의 변화를 종합적으로 설명**하세요.  
            - 단순한 나열이 아니라, **하루 전체의 건강 상태를 요약한 종합 설명**이 되도록 하세요.
+           - 데이터가 부족한 경우 데이터가 부족함을 명시하세요. 없는 데이터는 명시하지 않습니다.
         
         📌 **보고서 구성 (Markdown 형식)**
         
@@ -288,7 +301,7 @@ def create_final_report_prompt():
         
         ## ✅ 개선 방법
         - (실천 가능한 건강 개선 팁 제시)
-        
+
         ✨ 오늘도 건강을 챙기려는 당신의 노력이 정말 소중합니다.  
         스스로를 응원하며 한 걸음씩 나아가 보세요!
         ```
