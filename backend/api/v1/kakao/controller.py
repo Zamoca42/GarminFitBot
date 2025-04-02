@@ -13,7 +13,6 @@ from api.common.schema import (
     TextCard,
 )
 from core.config import FRONTEND_URL
-from core.util.aws import trigger_scale_out_event
 from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
 from task import analysis_health_query, collect_fit_data
@@ -67,7 +66,7 @@ class KakaoController:
                     )
                 )
 
-            trigger_scale_out_event()
+            # trigger_scale_out_event()
             collect_fit_data.apply_async(
                 kwargs={
                     "kakao_client_id": user_key,
@@ -179,7 +178,7 @@ class KakaoController:
                     )
                 )
 
-            trigger_scale_out_event()
+            # trigger_scale_out_event()
             analysis_health_query.apply_async(
                 kwargs={
                     "kakao_client_id": user_key,
