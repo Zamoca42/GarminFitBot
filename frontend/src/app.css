@@ -42,12 +42,22 @@ p {
 }
 
 a {
-	color: var(--color-theme-1);
+	color: var(--color-theme-2);
 	text-decoration: none;
 }
 
 a:hover {
 	text-decoration: underline;
+}
+
+/* 카카오톡 버튼 스타일 */
+a.kakao-button {
+	color: black;
+	text-decoration: none;
+}
+
+a.kakao-button:hover {
+	text-decoration: none;
 }
 
 h1 {

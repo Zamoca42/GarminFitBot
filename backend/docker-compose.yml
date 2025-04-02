@@ -23,6 +23,18 @@ services:
       - app-network
     restart: always
 
+  celery_worker:
+    profiles: ["production"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    volumes:
+      - .:/app
+    command: celery -A core.celery_app worker --loglevel=info
+    networks:
+      - app-network
+    restart: always
+
   # Monitoring services
   node_exporter:
     profiles: ["production"]
