@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer
 
 from api.common.schema import ResponseModel
-from app.service import GarminTimeSeriesService, GarminAuthManager
+from app.service import GarminAuthManager, GarminTimeSeriesService
 
 router = APIRouter(prefix="/time-series", tags=["테스트 - 시계열 데이터"])
 security = HTTPBearer()
@@ -144,4 +144,4 @@ async def get_sleep_hrv_readings(date: str, credentials=Depends(security)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
-        ) 
+        )

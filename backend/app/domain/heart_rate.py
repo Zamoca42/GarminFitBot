@@ -1,9 +1,13 @@
+import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from garth.data._base import Data
-from garth.utils import camel_to_snake_dict
 from pydantic.dataclasses import dataclass
+
+from core.util.dict_converter import camel_to_snake_dict_safe
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -41,15 +45,15 @@ class HeartRate(Data):
     start_timestamp_local: datetime
     end_timestamp_local: datetime
 
-    # [심박수 통계]
-    max_heart_rate: int
-    min_heart_rate: int
-    resting_heart_rate: int
-    last_seven_days_avg_resting_heart_rate: int
-
     # [데이터 구조]
     heart_rate_value_descriptors: List[HeartRateDescriptor]
     heart_rate_values: List[HeartRateValue]  # 변환된 측정값 목록
+
+    # [심박수 통계]
+    max_heart_rate: int
+    min_heart_rate: int
+    resting_heart_rate: Optional[int] = None
+    last_seven_days_avg_resting_heart_rate: Optional[int] = None
 
     @property
     def local_offset(self) -> float:
@@ -67,17 +71,20 @@ class HeartRate(Data):
         if not raw_data:
             return None
 
-        data = camel_to_snake_dict(raw_data)
+        try:
+            data = camel_to_snake_dict_safe(raw_data, cls=cls)
 
-        # 심박수 측정값 변환
-        values = []
-        for timestamp, heart_rate in data["heart_rate_values"]:
-            values.append(
-                HeartRateValue(
-                    timestamp=timestamp,
-                    heart_rate=int(heart_rate) if heart_rate is not None else None,
+            values = []
+            for timestamp, heart_rate in data.get("heart_rate_values", []):
+                values.append(
+                    HeartRateValue(
+                        timestamp=timestamp,
+                        heart_rate=int(heart_rate) if heart_rate is not None else None,
+                    )
                 )
-            )
-        data["heart_rate_values"] = values
+            data["heart_rate_values"] = values
 
-        return cls(**data)
+            return cls(**data)
+        except Exception as e:
+            logger.warning(f"심박수 데이터 처리 중 오류 발생: {str(e)}")
+            return None

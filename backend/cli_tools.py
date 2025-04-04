@@ -67,6 +67,7 @@ if __name__ == "__main__":
                 print(f"에러가 발생했습니다: {str(e)}")
         elif sys.argv[1] == "partition":
             import psycopg2
+
             from core.config import SYNC_DATABASE_URL
 
             try:
@@ -74,12 +75,14 @@ if __name__ == "__main__":
                 conn.autocommit = True
                 cur = conn.cursor()
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT n.nspname as schema_name
                     FROM pg_extension e
                     JOIN pg_namespace n ON n.oid = e.extnamespace
                     WHERE e.extname = 'pg_partman'
-                """)
+                """
+                )
                 row = cur.fetchone()
 
                 if row:

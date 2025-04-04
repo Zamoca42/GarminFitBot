@@ -33,7 +33,9 @@ def get_auth_controller(
     return AuthController(auth_manager, token_service, temp_token_service)
 
 
-@router.post("/login", response_model=ResponseModel, summary="테스트 - 가민 계정 로그인")
+@router.post(
+    "/login", response_model=ResponseModel, summary="테스트 - 가민 계정 로그인"
+)
 async def login(
     request: LoginRequest, controller: AuthController = Depends(get_auth_controller)
 ):

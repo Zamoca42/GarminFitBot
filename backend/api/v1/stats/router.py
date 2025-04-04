@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 
 from api.common.schema import ResponseModel
-from app.service import GarminStatsService, GarminAuthManager
+from app.service import GarminAuthManager, GarminStatsService
 
 router = APIRouter(prefix="/stats", tags=["테스트 - 통계 데이터"])
 security = HTTPBearer()
@@ -160,4 +160,4 @@ async def get_daily_steps_stats(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
-        ) 
+        )

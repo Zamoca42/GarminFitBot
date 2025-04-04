@@ -1,9 +1,13 @@
+import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from garth.data._base import Data
-from garth.utils import camel_to_snake_dict
 from pydantic.dataclasses import dataclass
+
+from core.util.dict_converter import camel_to_snake_dict_safe
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -199,7 +203,12 @@ class Activity(Data):
 
         activities = []
         for activity_data in raw_data:
-            data = camel_to_snake_dict(activity_data)
-            activities.append(cls(**data))
+            try:
+                # 안전한 변환 함수 사용 (타입에 따른 자동 기본값 설정)
+                data = camel_to_snake_dict_safe(activity_data, cls=cls)
+                activities.append(cls(**data))
+            except Exception as e:
+                logger.warning(f"활동 데이터 처리 중 오류 발생: {str(e)}")
+                continue
 
         return activities

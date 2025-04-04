@@ -141,4 +141,4 @@ async def get_sleep_hrv(date: str, request: Request):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
-        ) 
+        )

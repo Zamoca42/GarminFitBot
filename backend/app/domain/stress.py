@@ -1,9 +1,13 @@
+import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from garth.data._base import Data
-from garth.utils import camel_to_snake_dict
 from pydantic.dataclasses import dataclass
+
+from core.util.dict_converter import camel_to_snake_dict_safe
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -70,17 +74,24 @@ class Stress(Data):
         if not raw_data:
             return None
 
-        data = camel_to_snake_dict(raw_data)
+        try:
+            # 안전한 변환 함수 사용
+            data = camel_to_snake_dict_safe(raw_data, cls=cls)
 
-        # 스트레스 측정값 변환
-        values = []
-        for timestamp, stress_level in data["stress_values_array"]:
-            values.append(
-                StressValue(
-                    timestamp=timestamp,
-                    stress_level=int(stress_level),
+            # 스트레스 측정값 변환
+            values = []
+            for timestamp, stress_level in data.get("stress_values_array", []):
+                values.append(
+                    StressValue(
+                        timestamp=timestamp,
+                        stress_level=(
+                            int(stress_level) if stress_level is not None else None
+                        ),
+                    )
                 )
-            )
-        data["stress_values"] = values
+            data["stress_values"] = values
 
-        return cls(**data)
+            return cls(**data)
+        except Exception as e:
+            logger.warning(f"스트레스 데이터 처리 중 오류 발생: {str(e)}")
+            return None
