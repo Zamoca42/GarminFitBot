@@ -76,9 +76,7 @@ def create_planner_prompt():
     )
 
 
-def create_execute_tool_prompt(
-    tools_info: list[dict], tool_history: list[ToolHistory]
-):
+def create_execute_tool_prompt(tools_info: list[dict], tool_history: list[ToolHistory]):
     """Planner의 분석 목표를 기반으로 적절한 도구를 선택하는 프롬프트"""
     tools_info_str = json.dumps(tools_info, indent=2, ensure_ascii=False)
 

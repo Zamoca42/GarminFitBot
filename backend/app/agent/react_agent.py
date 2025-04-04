@@ -171,9 +171,7 @@ class HealthAnalysisAgent:
             self.tools, tool_choice=True
         )
         tools_info = self._extract_tool_metadata()
-        system_message = create_execute_tool_prompt(
-            tools_info, state["tool_history"]
-        )
+        system_message = create_execute_tool_prompt(tools_info, state["tool_history"])
         valid_messages = [m for m in messages if m is not None]
         return tools_selection_llm.invoke([system_message] + valid_messages)
 
