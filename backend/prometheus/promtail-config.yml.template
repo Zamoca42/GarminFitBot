@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: debug
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: https://your-grafana-cloud-loki-url/loki/api/v1/push
+    basic_auth:
+      username: 'your-grafana-cloud-username'
+      password: 'your-grafana-cloud-api-key'
+
+scrape_configs:
+  - job_name: garmin_fit_bot_local_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: garmin_fit_bot
+          environment: local
+          __path__: /app/garmin_api.log
+
+  - job_name: celery_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: celery
+          environment: local
+          __path__: /app/log/**/*.log

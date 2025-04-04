@@ -363,3 +363,5 @@ grafana-data/
 
 flower.db
 prometheus.yml
+promtail-config.yml
+promtail_data/
