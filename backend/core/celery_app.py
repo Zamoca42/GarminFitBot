@@ -1,8 +1,8 @@
 import logging
+import os
 
 import redis
 from celery import Celery, signals
-from celery.schedules import crontab
 
 from core.config import (
     BROKER_URL,
@@ -10,6 +10,11 @@ from core.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "log")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+CELERY_LOG_FILE = os.path.join(LOG_DIR, f"celery.log")
 
 sync_redis_client = redis.Redis.from_url(RESULT_BACKEND, decode_responses=True)
 
@@ -37,6 +42,18 @@ celery_app.conf.update(
 )
 
 
+@signals.after_setup_logger.connect
+@signals.after_setup_task_logger.connect
+def setup_logger(logger, *args, **kwargs):
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_handler = logging.FileHandler(CELERY_LOG_FILE)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.setLevel(logging.INFO)
+
+
 @signals.task_prerun.connect
 def on_task_start(*args, **kwargs):
     try:
@@ -53,3 +70,12 @@ def on_task_end(*args, **kwargs):
         logger.info("Task ended, active tasks count decreased")
     except Exception as e:
         logger.error(f"Error decreasing active tasks count: {e}")
+
+
+@signals.task_failure.connect
+def task_failure_handler(
+    task_id=None, exception=None, traceback=None, einfo=None, *args, **kwargs
+):
+    logger.error(f"Task failed: {task_id}, error: {exception}")
+    if traceback:
+        logger.error(f"Detailed error: {traceback}")
