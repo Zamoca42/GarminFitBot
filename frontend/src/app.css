@@ -50,6 +50,15 @@ a:hover {
 	text-decoration: underline;
 }
 
+/* 버튼 스타일이 적용된 링크에는 기본 a 태그 스타일 적용 안함 */
+a.text-white {
+	color: white;
+}
+
+a.text-white:hover {
+	text-decoration: none;
+}
+
 /* 카카오톡 버튼 스타일 */
 a.kakao-button {
 	color: black;
