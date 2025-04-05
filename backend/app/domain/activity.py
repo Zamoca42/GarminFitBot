@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from garth.data._base import Data
 from garth.utils import camel_to_snake_dict
@@ -86,21 +86,6 @@ class Activity(Data):
     activity_type: ActivityType
     event_type: EventType
 
-    # [거리/시간]
-    duration: float
-    elapsed_duration: float
-    moving_duration: float
-
-    # [칼로리]
-    calories: int
-
-    # [상태]
-    has_polyline: bool
-    has_splits: bool
-    manual_activity: bool
-    favorite: bool
-    privacy: Privacy
-
     # [사용자]
     owner_id: int
     owner_display_name: str
@@ -108,6 +93,19 @@ class Activity(Data):
     user_pro: bool
 
     # [Optional 필드]
+
+    # [칼로리]
+    calories: Optional[int] = None
+
+    # [거리/시간]
+    duration: Optional[float] = None
+    elapsed_duration: Optional[float] = None
+
+    # [상태]
+    has_polyline: Optional[bool] = None
+    manual_activity: Optional[bool] = None
+    favorite: Optional[bool] = None
+    privacy: Optional[Privacy] = None
 
     # [속도]
     average_speed: Optional[float] = None
