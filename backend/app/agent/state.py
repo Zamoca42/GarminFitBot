@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Annotated, Dict, List, Optional, TypedDict, Union
+from typing import Annotated, Dict, List, Optional, Tuple, TypedDict, Union
 
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
@@ -20,11 +20,15 @@ class DateRange(BaseModel):
     end_date: str = Field(..., description="종료일 (YYYY-MM-DD 형식)")
 
 
+class InsightItem(BaseModel):
+    comment: str = Field(..., description="날짜별 주요 패턴 및 통찰", max_length=500)
+
+
 class HealthAnalysisResult(BaseModel):
     """LLM이 반환할 건강 분석 결과의 구조"""
 
     summary: str = Field(..., description="건강 분석 요약")
-    insights: List[str] = Field(
+    insights: List[InsightItem] = Field(
         ..., description="추출된 건강 상태 관련 주요 패턴 및 통찰"
     )
     additional_analysis_needed: bool = Field(
@@ -57,6 +61,7 @@ class AgentState(TypedDict):
     end_date: Optional[date]
     user_timezone: Optional[str]
     today: Optional[date]
+    final_report: str
 
     loop_count: int
     analysis_history: Optional[List[HealthAnalysisResult]]

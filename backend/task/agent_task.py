@@ -25,16 +25,16 @@ class HealthQueryTask(DatabaseTask):
         kakao_client_id: str,
         query: str,
         user_timezone: Optional[str] = None,
-    ) -> Dict:
+    ) -> str:
         """건강 데이터 AI 분석"""
         try:
             user = self._get_user(kakao_client_id)
             agent = create_agent()
-            final_result = agent.run(
+            result = agent.run(
                 query=query, user_id=user.id, user_timezone=user_timezone
             )
 
-            return final_result["messages"][-1].content
+            return result["final_report"]
         except Exception as e:
             raise Exception(f"에러가 발생했습니다: {str(e)}")
         finally:

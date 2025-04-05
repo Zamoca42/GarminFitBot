@@ -198,23 +198,55 @@ class HealthAnalysisAgent:
                 tool_calls = message.tool_calls
 
         for tool_call in tool_calls:
-            tool_result = next(
-                (
-                    msg.status
-                    for msg in tool_messages
-                    if msg.tool_call_id == tool_call["id"]
-                ),
-                "error",
-            )
-            state["tool_history"].append(
-                {
-                    "name": tool_call["name"],
-                    "arguments": tool_call["args"],
-                    "status": tool_result,
-                }
-            )
+            tool_call_id = tool_call.get("id") if isinstance(tool_call, dict) else None
+            if tool_call_id:
+                tool_result = next(
+                    (
+                        msg.status
+                        for msg in tool_messages
+                        if msg.tool_call_id == tool_call_id
+                    ),
+                    "error",
+                )
+                state["tool_history"].append(
+                    {
+                        "name": tool_call.get("name", "unknown"),
+                        "arguments": tool_call.get("args", {}),
+                        "status": tool_result,
+                    }
+                )
 
         return [msg.content for msg in tool_messages]
+
+    def _process_analysis_history(self, analysis_history, comment_length=500):
+        """분석 이력을 처리하는 공통 함수
+
+        Args:
+            analysis_history: 분석 이력 목록
+            comment_length: 각 코멘트 최대 길이
+
+        Returns:
+            Tuple[List[str], List[str]]: (요약 목록, 포맷팅된 인사이트 목록)
+        """
+        if not analysis_history:
+            return [], []
+
+        summaries = []
+        formatted_insights = []
+
+        for result in analysis_history:
+            for insight in result.insights:
+                if not insight.comment:
+                    continue
+
+                comment = (
+                    insight.comment[: comment_length - 3] + "..."
+                    if len(insight.comment) > comment_length
+                    else insight.comment
+                )
+                formatted_insights.append(f"{comment}")
+
+        return summaries, formatted_insights
 
     def _generate_analysis(self, state: AgentState, parsed_tool_data):
         """AI에게 건강 데이터 분석 요청"""
@@ -224,17 +256,26 @@ class HealthAnalysisAgent:
         system_message = create_health_analyze_prompt()
         human_message = HumanMessage(content=f"도구 실행 결과: {parsed_tool_data}")
 
-        previous_analysis_summaries = (
-            "\n\n".join(
-                [
-                    f"이전 분석 결과 {i+1}:\n{history.summary}\n\n주요 인사이트:\n- "
-                    + "\n- ".join(history.insights)
-                    for i, history in enumerate(state["analysis_history"][-5:])
-                ]
+        previous_analysis_summaries = ""
+        if state["analysis_history"]:
+            summaries = []
+            past_summaries, past_insights = self._process_analysis_history(
+                state["analysis_history"]
             )
-            if state["analysis_history"]
-            else "이전 분석 결과 없음."
-        )
+
+            for i, summary in enumerate(past_summaries):
+                summaries.append(
+                    f"이전 분석 결과 {i+1}:\n{summary}\n\n주요 인사이트:\n- "
+                    + "\n- ".join(
+                        past_insights[i * 5 : (i + 1) * 5]
+                        if i < len(past_insights) // 5
+                        else past_insights
+                    )
+                )
+
+            previous_analysis_summaries = "\n\n".join(summaries)
+        else:
+            previous_analysis_summaries = "이전 분석 결과 없음."
 
         plan_items = [f"- {plan}" for plan in state["analysis_plan"]]
         analysis_plan = """
@@ -284,11 +325,9 @@ class HealthAnalysisAgent:
         llm = self._initialize_llm()
 
         def report(state: AgentState):
-            past_summaries = [history.summary for history in state["analysis_history"]]
-
-            past_insights = []
-            for history in state["analysis_history"]:
-                past_insights.extend(history.insights)
+            past_summaries, past_insights = self._process_analysis_history(
+                state["analysis_history"]
+            )
 
             joined_summaries = " ".join(past_summaries)
             joined_insights = "- " + "\n- ".join(past_insights)
@@ -313,6 +352,7 @@ class HealthAnalysisAgent:
 
             return {
                 "messages": state["messages"] + [response],
+                "final_report": response.content,
             }
 
         return report
@@ -389,6 +429,7 @@ class HealthAnalysisAgent:
             "tool_history": [],
             "analysis_history": [],
             "loop_count": 0,
+            "final_report": "",
         }
 
     @traceable
@@ -411,10 +452,7 @@ class HealthAnalysisAgent:
 
             return final_result
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()
-            return f"에러가 발생했습니다: {str(e)}"
+            raise Exception(f"에러가 발생했습니다: {str(e)}")
 
     def visualize_graph(self, output_path="graph_visualization.png"):
         """그래프를 시각화하고 파일로 저장합니다.
