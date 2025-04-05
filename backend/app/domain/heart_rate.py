@@ -3,9 +3,8 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from garth.data._base import Data
+from garth.utils import camel_to_snake_dict
 from pydantic.dataclasses import dataclass
-
-from core.util.dict_converter import camel_to_snake_dict_safe
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ class HeartRate(Data):
             return None
 
         try:
-            data = camel_to_snake_dict_safe(raw_data, cls=cls)
+            data = camel_to_snake_dict(raw_data)
 
             values = []
             for timestamp, heart_rate in data.get("heart_rate_values", []):

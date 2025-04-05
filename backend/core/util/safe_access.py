@@ -6,8 +6,7 @@
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -32,30 +31,6 @@ def safe_get(obj: Any, attr_name: str, default: Any = None) -> Any:
     except Exception as e:
         logger.debug(f"속성 {attr_name} 접근 실패: {str(e)}")
         return default
-
-
-def safe_call(obj: Any, method_name: str, *args, default: Any = None, **kwargs) -> Any:
-    """안전하게 객체의 메서드 호출
-
-    Args:
-        obj: 메서드를 호출할 객체
-        method_name: 호출할 메서드 이름
-        default: 메서드 호출 실패 시 반환할 기본값
-        args, kwargs: 메서드에 전달할 인자들
-
-    Returns:
-        메서드 호출 결과 또는 기본값
-    """
-    if obj is None:
-        return default
-    method = getattr(obj, method_name, None)
-    if callable(method):
-        try:
-            return method(*args, **kwargs)
-        except Exception as e:
-            logger.debug(f"{method_name} 메서드 호출 실패: {str(e)}")
-            return default
-    return default
 
 
 def safe_int(value: Any, default: int = 0) -> int:
@@ -90,24 +65,6 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
     try:
         return float(value)
-    except (ValueError, TypeError):
-        return default
-
-
-def safe_bool(value: Any, default: bool = False) -> bool:
-    """안전하게 불리언으로 변환
-
-    Args:
-        value: 변환할 값
-        default: 변환 실패 시 반환할 기본값
-
-    Returns:
-        변환된 불리언 또는 기본값
-    """
-    if value is None:
-        return default
-    try:
-        return bool(value)
     except (ValueError, TypeError):
         return default
 
@@ -150,87 +107,6 @@ def safe_list(value: Any, default: Optional[List] = None) -> List:
         return list(value)
     except (ValueError, TypeError):
         return default
-
-
-def safe_dict(value: Any, default: Optional[Dict] = None) -> Dict:
-    """안전하게 딕셔너리 반환
-
-    Args:
-        value: 변환할 값
-        default: 변환 실패 시 반환할 기본값
-
-    Returns:
-        딕셔너리 또는 기본값
-    """
-    if default is None:
-        default = {}
-    if value is None:
-        return default
-    if isinstance(value, dict):
-        return value
-    return default
-
-
-def safe_datetime(value: Any, default: Optional[datetime] = None) -> Optional[datetime]:
-    """안전하게 datetime 객체 반환
-
-    Args:
-        value: 변환할 값 (타임스탬프(밀리초) 또는 ISO 형식 문자열)
-        default: 변환 실패 시 반환할 기본값
-
-    Returns:
-        datetime 객체 또는 기본값
-    """
-    if value is None:
-        return default
-    if isinstance(value, datetime):
-        return value
-    try:
-        if isinstance(value, (int, float)):
-            return datetime.fromtimestamp(value / 1000)
-        elif isinstance(value, str):
-            return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except (ValueError, TypeError, OSError):
-        pass
-    return default
-
-
-def safe_timedelta(
-    seconds: Any, default: Optional[timedelta] = None
-) -> Optional[timedelta]:
-    """안전하게 timedelta 객체 반환
-
-    Args:
-        seconds: 초 단위 시간
-        default: 변환 실패 시 반환할 기본값
-
-    Returns:
-        timedelta 객체 또는 기본값
-    """
-    if default is None:
-        default = timedelta(seconds=0)
-    if seconds is None:
-        return default
-    try:
-        return timedelta(seconds=float(seconds))
-    except (ValueError, TypeError):
-        return default
-
-
-def ensure_type(value: Any, expected_type: Type[T], default: T) -> T:
-    """값이 기대하는 타입인지 확인하고, 아니면 기본값 반환
-
-    Args:
-        value: 확인할 값
-        expected_type: 기대하는 타입
-        default: 타입이 일치하지 않을 때 반환할 기본값
-
-    Returns:
-        값 또는 기본값
-    """
-    if isinstance(value, expected_type):
-        return value
-    return default
 
 
 def safe_get_item(obj: Any, key: Any, default: Any = None) -> Any:

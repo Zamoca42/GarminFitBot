@@ -2,9 +2,8 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
+from garth.utils import camel_to_snake_dict
 from pydantic.dataclasses import dataclass
-
-from core.util.dict_converter import camel_to_snake_dict_safe
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ class StepsValue:
         values = []
         for data in raw_data:
             try:
-                snake_data = camel_to_snake_dict_safe(data, cls=cls)
+                snake_data = camel_to_snake_dict(data)
                 values.append(cls(**snake_data))
             except Exception as e:
                 logger.warning(f"걸음수 데이터 처리 중 오류 발생: {str(e)}")
