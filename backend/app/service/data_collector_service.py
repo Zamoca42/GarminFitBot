@@ -33,9 +33,6 @@ from app.model import (
 from app.service._base_service import BaseGarminService
 from core.util.safe_access import (
     log_exception,
-    safe_bool,
-    safe_call,
-    safe_dict,
     safe_float,
     safe_get,
     safe_get_item,
@@ -150,9 +147,7 @@ class HeartRateCollector(BaseDataCollector):
             heart_rate_values = safe_list(
                 safe_get(heart_rate_data, "heart_rate_values", [])
             )
-            local_offset = safe_float(
-                safe_call(heart_rate_data, "local_offset", default=0.0)
-            )
+            local_offset = safe_float(safe_get(heart_rate_data, "local_offset", 0.0))
 
             # 평균 심박수 계산
             avg_heart_rate = None
@@ -181,7 +176,7 @@ class HeartRateCollector(BaseDataCollector):
                     if reading is None:
                         continue
 
-                    start_time_gmt = safe_call(reading, "start_time_gmt")
+                    start_time_gmt = safe_get(reading, "start_time_gmt")
                     heart_rate_value = safe_get(reading, "heart_rate")
 
                     if start_time_gmt is None:
@@ -278,7 +273,6 @@ class StressCollector(BaseDataCollector):
                 )
                 return None
 
-            # 안전한 값 추출
             avg_stress_level = safe_int(safe_get(stress_data, "avg_stress_level", 0))
             max_stress_level = safe_int(safe_get(stress_data, "max_stress_level", 0))
             stress_duration = safe_int(safe_get(daily_summary, "stress_duration", 0))
@@ -286,9 +280,7 @@ class StressCollector(BaseDataCollector):
                 safe_get(daily_summary, "rest_stress_duration", 0)
             )
             stress_values = safe_list(safe_get(stress_data, "stress_values", []))
-            local_offset = safe_float(
-                safe_call(daily_summary, "local_offset", default=0.0)
-            )
+            local_offset = safe_float(safe_get(daily_summary, "local_offset", 0.0))
 
             daily_summary_data = StressDaily(
                 user_id=user_id,
@@ -299,20 +291,12 @@ class StressCollector(BaseDataCollector):
                 rest_duration_seconds=rest_stress_duration,
             )
 
-            # 상세 측정값 저장
             readings = []
             for reading in stress_values:
                 try:
-                    if reading is None:
-                        continue
-
-                    start_time_gmt = safe_call(reading, "start_time_gmt")
+                    start_time_gmt = safe_get(reading, "start_time_gmt")
                     stress_level = safe_get(reading, "stress_level")
 
-                    if start_time_gmt is None:
-                        continue
-
-                    # 로컬 시간 계산
                     start_time_local = start_time_gmt.replace(tzinfo=None) + timedelta(
                         seconds=local_offset
                     )
@@ -333,6 +317,7 @@ class StressCollector(BaseDataCollector):
                 "daily_summary": daily_summary_data,
                 "readings": readings,
             }
+
         except Exception as e:
             self.log_mapping_error(
                 e, {"user_id": user_id, "target_date": str(target_date)}
@@ -402,9 +387,7 @@ class StepsCollector(BaseDataCollector):
             floors_climbed = safe_int(
                 safe_get(daily_summary_data, "floors_ascended", 0)
             )
-            local_offset = safe_float(
-                safe_call(daily_summary_data, "local_offset", default=0.0)
-            )
+            local_offset = safe_float(safe_get(daily_summary_data, "local_offset", 0.0))
             total_steps = safe_int(safe_get(daily_summary_data, "total_steps", 0))
             goal_steps = safe_int(safe_get(daily_summary_data, "daily_step_goal", 0))
             distance_meters = safe_float(
@@ -437,8 +420,8 @@ class StepsCollector(BaseDataCollector):
                         if reading is None:
                             continue
 
-                        start_time_gmt = safe_call(reading, "start_time_gmt")
-                        end_time_gmt = safe_call(reading, "end_time_gmt")
+                        start_time_gmt = safe_get(reading, "start_time_gmt")
+                        end_time_gmt = safe_get(reading, "end_time_gmt")
 
                         if start_time_gmt is None or end_time_gmt is None:
                             continue
