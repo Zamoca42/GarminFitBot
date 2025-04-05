@@ -80,7 +80,6 @@
 			<p class="text-center text-lg text-gray-500">
 				GarminFitBot 카카오톡 채널을 추가하고 건강 데이터 분석을 시작해보세요.
 			</p>
-
 		</div>
 
 		<!-- 데모 -->
@@ -166,6 +165,13 @@
 				>
 					<span class="mr-2 text-2xl">{kakaoChannel.icon}</span>
 					카카오톡 채널 추가하기
+				</a>
+				<a
+					href="/updates"
+					class="ml-4 inline-flex items-center rounded-lg bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+				>
+					<span class="mr-2">📋</span>
+					업데이트 내역 보기
 				</a>
 			</div>
 		</div>
