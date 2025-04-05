@@ -51,19 +51,19 @@
 
 	$: statusInfo = {
 		PENDING: {
-			message: '작업을 대기중 입니다...',
+			message: '대기중 입니다...',
 			color: 'text-gray-500'
 		},
 		STARTED: {
-			message: '작업을 시작하였습니다...',
+			message: '시작하였습니다...',
 			color: 'text-blue-500'
 		},
 		SUCCESS: {
-			message: '작업이 완료되었습니다!',
+			message: '완료되었습니다!',
 			color: 'text-green-500'
 		},
 		FAILURE: {
-			message: '작업 실행 중 오류가 발생했습니다.',
+			message: '오류가 발생했습니다.',
 			color: 'text-red-500'
 		}
 	}[status.status];
@@ -122,37 +122,39 @@
 <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
 	<div class="w-full max-w-md space-y-8">
 		<div class="text-center">
-			<h1 class="text-3xl font-bold">{currentTask.title}</h1>
-			<p class="mt-2 text-gray-400">
+			<h1 class="break-words text-2xl font-bold sm:text-3xl">{currentTask.title}</h1>
+			<p class="mt-2 break-words text-gray-400">
 				{date}
 				{currentTask.description}
 			</p>
 		</div>
 
-		<div class="mt-8 rounded-lg bg-white p-6 shadow">
+		<div class="mt-8 rounded-lg bg-white p-4 shadow sm:p-6">
 			<div class="text-center">
-				<div class={`text-xl font-semibold ${statusInfo.color}`}>
+				<div class={`text-lg font-semibold sm:text-xl ${statusInfo.color} break-words`}>
 					{statusInfo.message}
 				</div>
 
 				{#if status.status === 'SUCCESS' && status.result}
-					<div class="mt-4 rounded-md bg-green-50 p-4">
-						<h3 class="text-lg font-medium text-green-800">{currentTask.resultTitle}</h3>
+					<div class="mt-4 rounded-md bg-green-50 p-3 sm:p-4">
+						<h3 class="break-words text-base font-medium text-green-800 sm:text-lg">
+							{currentTask.resultTitle}
+						</h3>
 
 						{#if taskName === 'collect-fit-data'}
-							<div class="mt-4">
+							<div class="mt-4 overflow-x-auto">
 								<table class="min-w-full">
 									<thead>
 										<tr class="border-b">
-											<th class="py-2">데이터 종류</th>
-											<th class="py-2">상태</th>
+											<th class="px-2 py-2 text-sm sm:text-base">데이터 종류</th>
+											<th class="px-2 py-2 text-sm sm:text-base">상태</th>
 										</tr>
 									</thead>
 									<tbody>
 										{#each formatResult(status.result) as item}
 											<tr class="border-b">
-												<td class="py-2">{item.name}</td>
-												<td class="py-2">
+												<td class="break-words px-2 py-2 text-sm sm:text-base">{item.name}</td>
+												<td class="px-2 py-2 text-sm sm:text-base">
 													<span
 														class={item.status === '성공'
 															? 'text-green-600'
@@ -170,7 +172,9 @@
 							</div>
 						{:else if taskName === 'analysis-health' && typeof status.result === 'string'}
 							<div class="mt-4">
-								<div class="max-h-60 overflow-y-auto whitespace-pre-wrap text-sm text-green-700">
+								<div
+									class="max-h-60 overflow-y-auto whitespace-pre-wrap break-words text-sm text-green-700"
+								>
 									{status.result?.substring(0, 250)}...
 								</div>
 								<button
@@ -181,7 +185,8 @@
 								</button>
 							</div>
 						{:else}
-							<pre class="mt-2 whitespace-pre-wrap text-sm text-green-700">
+							<pre
+								class="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-sm text-green-700">
                 {JSON.stringify(status.result, null, 2)}
               </pre>
 						{/if}
@@ -189,11 +194,14 @@
 				{/if}
 
 				{#if status.status === 'FAILURE' && status.error}
-					<div class="mt-4 rounded-md bg-red-50 p-4">
-						<h3 class="text-lg font-medium text-red-800">오류 내용</h3>
-						<p class="mt-2 text-sm text-red-700">
+					<div class="mt-4 rounded-md bg-red-50 p-3 sm:p-4">
+						<h3 class="break-words text-base font-medium text-red-800 sm:text-lg">오류 내용</h3>
+						<p class="mt-2 overflow-x-auto break-words text-sm text-red-700">
 							{JSON.stringify(status.error, null, 2)}
 						</p>
+						<div class="mt-4 text-center">
+							<p class="mb-2 text-red-700">챗봇으로 돌아가서 다시 시도해 보세요.</p>
+						</div>
 					</div>
 				{/if}
 
@@ -210,7 +218,7 @@
 {#if showModal}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
 		<div
-			class="scrollbar-hide max-h-[90vh] w-full max-w-4xl overflow-y-auto scroll-smooth rounded-lg bg-white p-6 shadow-xl"
+			class="scrollbar-hide max-h-[90vh] w-full max-w-4xl overflow-y-auto scroll-smooth rounded-lg bg-white p-4 shadow-xl sm:p-6"
 		>
 			<div class="mb-4 flex items-center justify-end">
 				<button class="text-gray-500 hover:text-gray-700" on:click={closeModal} aria-label="닫기">
@@ -230,7 +238,7 @@
 					</svg>
 				</button>
 			</div>
-			<div class="prose prose-sm md:prose-base max-w-none">
+			<div class="prose prose-sm md:prose-base max-w-none break-words">
 				{@html marked(mdResult)}
 			</div>
 		</div>
