@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from api.common.schema import Button, KakaoResponse, Template, TextCard
+from api.common.schema import Button, KakaoResponse, Template, TextCard, SimpleText
 from app.model import User
 from app.service.token_service import TempTokenService
 from core.config import FRONTEND_URL, KAKAO_BOT_ID
@@ -55,17 +55,11 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
             template=Template(
                 outputs=[
                     {
-                        "textCard": TextCard(
-                            title="이미 서비스가 연결되어 있습니다",
-                            description=f"{user.full_name}님의 가민 커넥트 계정이 이미 챗봇 서비스와 연결되어 있습니다.\n"
-                                      f"데이터 수집, 분석 등 다른 기능을 이용해보세요.",
-                            buttons=[
-                                Button(
-                                    action="message",
-                                    label="연결된 프로필 조회",
-                                    messageText="프로필 조회"
-                                )
-                            ],
+                        "simpleText": SimpleText(
+                            text=
+                            f"{user.full_name}님의 가민 커넥트 계정이 이미 챗봇 서비스와 연결되어 있습니다.\n"
+                            f"데이터 수집, 분석 등 다른 기능을 이용해보세요.\n"
+                            f"프로필 조회라고 입력하면 연결된 프로필 정보를 확인할 수 있습니다."
                         )
                     }
                 ]
