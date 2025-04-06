@@ -40,9 +40,11 @@ class KakaoController:
         try:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
-            date = request.action.detailParams["date"]["origin"]
+            detail_params = request.action.detailParams
+            date = detail_params["date"]["value"]
+            origin_date = detail_params["date"]["origin"]
             task_name = collect_fit_data.name
-            task_id = generate_task_id(user_key, date, task_name)
+            task_id = generate_task_id(user_key, origin_date, task_name)
             celery_task_id = generate_celery_task_id(task_id)
             task_result = AsyncResult(celery_task_id)
             task_status_url = f"{FRONTEND_URL}/{task_id_to_path(task_id)}/status"
@@ -53,7 +55,11 @@ class KakaoController:
                         outputs=[
                             {
                                 "simpleText": SimpleText(
-                                    text="해당 날짜의 데이터는 이미 수집이 완료되었어요.\n다음 날 다시 요청해 주세요 😊"
+                                    text=
+                                    f"요청하신 수집일: {origin_date}\n"
+                                    f"수집한 날짜: {date}\n"
+                                    f"수집이 완료되었어요.\n"
+                                    f"다음 날 다시 요청해 주세요 😊"
                                 )
                             }
                         ]
