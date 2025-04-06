@@ -269,11 +269,11 @@ class KakaoController:
                         outputs=[
                             {
                                 "simpleText": SimpleText(
-                                    text=f"👤 가민 프로필 정보\n"
-                                    f"**닉네임**: {full_name}\n"
-                                    f"**이메일**: {email}\n"
-                                    f"**마지막 동기화**: {last_sync_time}\n"
-                                    f"**가민 핏봇 연결일**: {connected_at}"
+                                    text=f"👤 연결된 가민 프로필 정보\n\n"
+                                    f"닉네임: {full_name}\n"
+                                    f"이메일: {email}\n"
+                                    f"마지막 동기화: {last_sync_time}\n"
+                                    f"가민 핏봇 연결일: {connected_at}"
                                 )
                             }
                         ]
