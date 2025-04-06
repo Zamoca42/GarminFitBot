@@ -57,9 +57,9 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
                     {
                         "simpleText": SimpleText(
                             text=
-                            f"{user.full_name}님의 가민 커넥트 계정이 이미 챗봇 서비스와 연결되어 있습니다.\n"
-                            f"데이터 수집, 분석 등 다른 기능을 이용해보세요.\n"
-                            f"프로필 조회라고 입력하면 연결된 프로필 정보를 확인할 수 있습니다."
+                            f"{user.full_name}님,\n 가민 계정은 이미 연결되어 있어요! 🙌\n"
+                            f"이제 데이터 수집이나 건강 분석 같은\n 기능들을 바로 이용하실 수 있어요.\n\n"
+                            f"궁금하신 게 있다면 '프로필 조회'라고 입력해보세요.\n 연결된 정보를 알려드릴게요 😊"
                         )
                     }
                 ]
