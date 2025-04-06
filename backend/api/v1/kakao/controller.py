@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 
 import pytz
 from celery.result import AsyncResult
@@ -21,6 +22,7 @@ from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
 from task import analysis_health_query, collect_fit_data
 
+logger = logging.getLogger(__name__)
 
 class KakaoController:
     def __init__(self, session: AsyncSession, token_service: TokenService):
@@ -35,6 +37,7 @@ class KakaoController:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
             date = request.action.detailParams["date"]["origin"]
+            logger.info(f"데이터 요청: {request}")
             task_name = collect_fit_data.name
             task_id = generate_task_id(user_key, date, task_name)
             celery_task_id = generate_celery_task_id(task_id)
