@@ -11,6 +11,7 @@ class Button(BaseModel):
     action: str
     label: str
     webLinkUrl: str
+    messageText: str
 
 
 class TextCard(BaseModel):

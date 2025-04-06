@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from api.common.schema import Button, KakaoResponse, Template, TextCard
 from app.model import User
 from app.service.token_service import TempTokenService
-from core.config import FRONTEND_URL, KAKAO_BOT_ID, KAKAO_BOT_PROFILE_BLOCK_ID
+from core.config import FRONTEND_URL, KAKAO_BOT_ID
 from core.db import get_session
 
 
@@ -61,9 +61,9 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
                                       f"데이터 수집, 분석 등 다른 기능을 이용해보세요.",
                             buttons=[
                                 Button(
-                                    action="block",
+                                    action="message",
                                     label="연결된 프로필 조회",
-                                    blockId=KAKAO_BOT_PROFILE_BLOCK_ID,
+                                    messageText="프로필 조회"
                                 )
                             ],
                         )
