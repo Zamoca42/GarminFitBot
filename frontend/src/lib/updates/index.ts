@@ -14,21 +14,21 @@ export type UpdateMetadata = {
 
 export const updates: UpdateMetadata[] = [
   {
-    id: '2025-04-04-fix',
-    date: '2025-04-04',
-    title: '데이터 수집 시 발생하는 오류 수정',
-    type: 'bugfix',
-    summary: 'Garmin API에서 None 값 처리 및 타입 검증 오류를 수정하여 안정적인 데이터 수집이 가능하도록 개선했습니다.',
-    content: fix20250404
-  },
-  {
-    id: '2025-04-05-improvement',
+    id: '2025-04-05-fix',
     date: '2025-04-05',
     title: '분석 에이전트 버그 수정 및 안정성 개선',
     type: 'bugfix',
     summary: 'AI 에이전트의 상태 관리, 프롬프트 최적화 및 텍스트 길이 제한을 통해 데이터 처리 오류를 해결하고 안정성을 향상시켰습니다.',
     content: fix20250405
   },
+  {
+    id: '2025-04-04-fix',
+    date: '2025-04-04',
+    title: '데이터 수집 시 발생하는 오류 수정',
+    type: 'bugfix',
+    summary: 'Garmin API에서 None 값 처리 및 타입 검증 오류를 수정하여 안정적인 데이터 수집이 가능하도록 개선했습니다.',
+    content: fix20250404
+  }
 ];
 
 export function getUpdateById(id: string): UpdateMetadata | undefined {
