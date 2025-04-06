@@ -33,11 +33,11 @@ class KakaoController:
         """
         카카오톡 챗봇에서 데이터 수집 작업 요청
         """
+        logger.info(f"데이터 요청: {request}")
         try:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
             date = request.action.detailParams["date"]["origin"]
-            logger.info(f"데이터 요청: {request}")
             task_name = collect_fit_data.name
             task_id = generate_task_id(user_key, date, task_name)
             celery_task_id = generate_celery_task_id(task_id)
