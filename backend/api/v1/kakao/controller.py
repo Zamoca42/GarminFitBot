@@ -105,8 +105,17 @@ class KakaoController:
                 )
             )
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            logger.error(f"데이터 수집 요청 오류: {e}")
+            return KakaoResponse(
+                template=Template(
+                    outputs=[
+                        {
+                            "simpleText": SimpleText(
+                                text=f"데이터 수집 오류가 발생했어요.\n잠시 후 다시 시도해 주세요."
+                            )
+                        }
+                    ]
+                )
             )
 
     async def request_health_analysis(self, request: KakaoRequest) -> KakaoResponse:
