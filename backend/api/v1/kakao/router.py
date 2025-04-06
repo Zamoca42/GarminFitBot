@@ -2,12 +2,21 @@ from fastapi import APIRouter, Depends
 
 from api.common.schema import KakaoRequest, KakaoResponse
 from api.v1.kakao.controller import KakaoController
+from app.service import TokenService
+from core.db import AsyncSession, get_session
 
 router = APIRouter(prefix="/kakao", tags=["카카오 챗봇"])
 
 
-def get_kakao_controller() -> KakaoController:
-    return KakaoController()
+def get_token_service() -> TokenService:
+    return TokenService()
+
+
+def get_kakao_controller(
+    session: AsyncSession = Depends(get_session),
+    token_service: TokenService = Depends(get_token_service),
+) -> KakaoController:
+    return KakaoController(session, token_service)
 
 
 @router.post("/fit/collection", response_model=KakaoResponse)
@@ -30,3 +39,14 @@ async def request_health_analysis(
     카카오 챗봇에서 건강 분석 작업 요청
     """
     return await controller.request_health_analysis(request)
+
+
+@router.post("/profile", response_model=KakaoResponse)
+async def get_garmin_profile(
+    request: KakaoRequest,
+    controller: KakaoController = Depends(get_kakao_controller),
+):
+    """
+    카카오 챗봇에서 연결된 가민 프로필 정보 조회
+    """
+    return await controller.get_garmin_profile(request)

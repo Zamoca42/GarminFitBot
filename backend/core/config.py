@@ -77,6 +77,9 @@ CORS_ORIGINS: List[str] = [
     "https://fit-bot.click",
 ]
 
+# 카카오톡 블록 설정
+KAKAO_BOT_PROFILE_BLOCK_ID = os.getenv("KAKAO_BOT_PROFILE_BLOCK_ID")
+
 # 로깅 설정
 logging.basicConfig(
     level=logging.INFO,
