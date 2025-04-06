@@ -7,12 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.common.schema import (
-    Button,
     KakaoRequest,
     KakaoResponse,
     SimpleText,
     Template,
     TextCard,
+    WebLinkButton,
 )
 from app.model import User
 from app.service.token_service import TokenService
@@ -62,8 +62,7 @@ class KakaoController:
                                     title="데이터 수집 진행 중",
                                     description="이미 데이터 수집이 진행 중이에요!\n아래 버튼을 눌러 현재 상황을 확인해 보세요 👇",
                                     buttons=[
-                                        Button(
-                                            action="webLink",
+                                        WebLinkButton(
                                             label="진행 상황 확인",
                                             webLinkUrl=task_status_url,
                                         )
@@ -92,8 +91,7 @@ class KakaoController:
                                 title="데이터 수집 시작",
                                 description="데이터 수집을 시작했어요!\n작업 상태는 아래 버튼에서 확인하실 수 있어요 👍",
                                 buttons=[
-                                    Button(
-                                        action="webLink",
+                                    WebLinkButton(
                                         label="결과 확인하기",
                                         webLinkUrl=task_status_url,
                                     )
@@ -133,8 +131,7 @@ class KakaoController:
                                     title="분석 중복 요청",
                                     description="이미 해당 요청에 대한 분석이 진행 중이에요 😊\n결과는 아래 버튼을 눌러 확인하실 수 있어요.",
                                     buttons=[
-                                        Button(
-                                            action="webLink",
+                                        WebLinkButton(
                                             label="결과 확인",
                                             webLinkUrl=task_status_url,
                                         )
@@ -154,8 +151,7 @@ class KakaoController:
                                     title="분석 완료",
                                     description="분석이 모두 완료되었어요!\n아래 버튼을 눌러 결과를 확인해 보세요 🎉",
                                     buttons=[
-                                        Button(
-                                            action="webLink",
+                                        WebLinkButton(
                                             label="결과 확인",
                                             webLinkUrl=task_status_url,
                                         )
@@ -174,8 +170,7 @@ class KakaoController:
                                     title="AI가 건강 데이터 분석을 진행 중입니다",
                                     description="지금 AI가 열심히 분석 중이에요 🔍\n아래 버튼으로 진행 상황을 확인해 보세요.",
                                     buttons=[
-                                        Button(
-                                            action="webLink",
+                                        WebLinkButton(
                                             label="진행 상황 확인",
                                             webLinkUrl=task_status_url,
                                         )
@@ -204,8 +199,7 @@ class KakaoController:
                                 title="AI가 건강 데이터 분석을 시작합니다",
                                 description="AI가 건강 데이터를 분석하기 시작했어요! 💪\n분석이 끝나면 아래 버튼을 눌러 결과를 확인해 주세요.",
                                 buttons=[
-                                    Button(
-                                        action="webLink",
+                                    WebLinkButton(
                                         label="결과 확인하기",
                                         webLinkUrl=task_status_url,
                                     )
@@ -230,40 +224,46 @@ class KakaoController:
                 select(User).where(User.kakao_client_id == user_key)
             )
             user = result.scalar_one_or_none()
-            
+
             oauth1_token = {
                 "oauth_token": user.oauth_token,
                 "oauth_token_secret": user.oauth_token_secret,
                 "domain": user.domain,
             }
             garmin_client = self.token_service.create_garmin_client(oauth1_token)
-            
+
             try:
                 profile = garmin_client.user_profile
-                
+
                 full_name = profile.get("fullName", "")
                 email = profile.get("userName", "")
-                
-                connect_last_sync_info = garmin_client.connectapi("/wellness-service/wellness/syncTimestamp")
+
+                connect_last_sync_info = garmin_client.connectapi(
+                    "/wellness-service/wellness/syncTimestamp"
+                )
                 user_timezone = request.userRequest.timezone or "Asia/Seoul"
                 tz = pytz.timezone(user_timezone)
 
                 if isinstance(connect_last_sync_info, str):
                     try:
-                        sync_time = datetime.strptime(connect_last_sync_info, "%Y-%m-%dT%H:%M:%S.%f")
+                        sync_time = datetime.strptime(
+                            connect_last_sync_info, "%Y-%m-%dT%H:%M:%S.%f"
+                        )
                         localized_time = pytz.utc.localize(sync_time).astimezone(tz)
-                        last_sync_time = localized_time.strftime("%Y년 %m월 %d일 %H시 %M분")
+                        last_sync_time = localized_time.strftime(
+                            "%Y년 %m월 %d일 %H시 %M분"
+                        )
                     except Exception:
                         last_sync_time = connect_last_sync_info
                 else:
                     last_sync_time = "알 수 없음"
-                
+
                 if user.created_at:
                     created_at_kr = user.created_at.astimezone(tz)
                     connected_at = created_at_kr.strftime("%Y년 %m월 %d일")
                 else:
                     connected_at = "알 수 없음"
-                
+
                 return KakaoResponse(
                     template=Template(
                         outputs=[
@@ -286,14 +286,14 @@ class KakaoController:
                             {
                                 "simpleText": SimpleText(
                                     text=f"가민 프로필 정보를 가져오는 데 실패했습니다.\n"
-                                        f"가민 커넥트 계정 연결을 확인해주세요.\n"
-                                        f"오류: {str(e)}"
+                                    f"가민 커넥트 계정 연결을 확인해주세요.\n"
+                                    f"오류: {str(e)}"
                                 )
                             }
                         ]
                     )
                 )
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)

@@ -4,7 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from api.common.schema import Button, KakaoResponse, Template, TextCard, SimpleText
+from api.common.schema import (
+    KakaoResponse,
+    MessageButton,
+    Template,
+    TextCard,
+    WebLinkButton,
+)
 from app.model import User
 from app.service.token_service import TempTokenService
 from core.config import FRONTEND_URL, KAKAO_BOT_ID
@@ -55,11 +61,16 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
             template=Template(
                 outputs=[
                     {
-                        "simpleText": SimpleText(
-                            text=
-                            f"{user.full_name}님,\n 가민 계정은 이미 연결되어 있어요! 🙌\n"
-                            f"이제 데이터 수집이나 건강 분석 같은\n 기능들을 바로 이용하실 수 있어요.\n\n"
-                            f"궁금하신 게 있다면 '프로필 조회'라고 입력해보세요.\n 연결된 정보를 알려드릴게요 😊"
+                        "textCard": TextCard(
+                            title="서비스 연결 완료",
+                            description=f"{user.full_name}님,\n 가민 계정은 이미 연결되어 있어요! 🙌\n"
+                            f"이제 데이터 수집이나 건강 분석 같은\n 기능들을 바로 이용하실 수 있어요.\n\n",
+                            buttons=[
+                                MessageButton(
+                                    label="연결된 프로필 조회",
+                                    messageText="프로필 조회",
+                                )
+                            ],
                         )
                     }
                 ]
@@ -85,7 +96,7 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
                             title="서비스 연결 필요",
                             description="가민 커넥트와 챗봇 서비스가 연결되어 있지 않습니다.\n아래 버튼을 클릭하여 서비스를 연결해주세요.",
                             buttons=[
-                                Button(
+                                WebLinkButton(
                                     action="webLink",
                                     label="서비스 연결",
                                     webLinkUrl=f"{FRONTEND_URL}/signup/{user_key}",
