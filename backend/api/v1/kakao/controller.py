@@ -3,6 +3,8 @@ from datetime import datetime
 import pytz
 from celery.result import AsyncResult
 from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.common.schema import (
     Button,
@@ -12,6 +14,8 @@ from api.common.schema import (
     Template,
     TextCard,
 )
+from app.model import User
+from app.service.token_service import TokenService
 from core.config import FRONTEND_URL
 from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
@@ -19,6 +23,10 @@ from task import analysis_health_query, collect_fit_data
 
 
 class KakaoController:
+    def __init__(self, session: AsyncSession, token_service: TokenService):
+        self.session = session
+        self.token_service = token_service
+
     async def request_data_collection(self, request: KakaoRequest) -> KakaoResponse:
         """
         카카오톡 챗봇에서 데이터 수집 작업 요청
@@ -207,6 +215,85 @@ class KakaoController:
                     ]
                 )
             )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            )
+
+    async def get_garmin_profile(self, request: KakaoRequest) -> KakaoResponse:
+        """
+        카카오톡 챗봇에서 연결된 가민 프로필 정보 조회
+        """
+        try:
+            user_key = request.userRequest.user.id
+            result = await self.session.execute(
+                select(User).where(User.kakao_client_id == user_key)
+            )
+            user = result.scalar_one_or_none()
+            
+            oauth1_token = {
+                "oauth_token": user.oauth_token,
+                "oauth_token_secret": user.oauth_token_secret,
+                "domain": user.domain,
+            }
+            garmin_client = self.token_service.create_garmin_client(oauth1_token)
+            
+            try:
+                profile = garmin_client.user_profile
+                
+                full_name = profile.get("fullName", "")
+                email = profile.get("userName", "")
+                
+                connect_last_sync_info = garmin_client.connectapi("/wellness-service/wellness/syncTimestamp")
+                user_timezone = request.userRequest.timezone or "Asia/Seoul"
+                tz = pytz.timezone(user_timezone)
+
+                if isinstance(connect_last_sync_info, str):
+                    try:
+                        sync_time = datetime.strptime(connect_last_sync_info, "%Y-%m-%dT%H:%M:%S.%f")
+                        localized_time = pytz.utc.localize(sync_time).astimezone(tz)
+                        last_sync_time = localized_time.strftime("%Y년 %m월 %d일 %H시 %M분")
+                    except Exception:
+                        last_sync_time = connect_last_sync_info
+                else:
+                    last_sync_time = "알 수 없음"
+                
+                if user.created_at:
+                    created_at_kr = user.created_at.astimezone(tz)
+                    connected_at = created_at_kr.strftime("%Y년 %m월 %d일")
+                else:
+                    connected_at = "알 수 없음"
+                
+                return KakaoResponse(
+                    template=Template(
+                        outputs=[
+                            {
+                                "simpleText": SimpleText(
+                                    text=f"👤 가민 프로필 정보\n"
+                                    f"**닉네임**: {full_name}\n"
+                                    f"**이메일**: {email}\n"
+                                    f"**마지막 동기화**: {last_sync_time}\n"
+                                    f"**가민 핏봇 연결일**: {connected_at}"
+                                )
+                            }
+                        ]
+                    )
+                )
+            except Exception as e:
+                return KakaoResponse(
+                    template=Template(
+                        outputs=[
+                            {
+                                "simpleText": SimpleText(
+                                    text=f"가민 프로필 정보를 가져오는 데 실패했습니다.\n"
+                                        f"가민 커넥트 계정 연결을 확인해주세요.\n"
+                                        f"오류: {str(e)}"
+                                )
+                            }
+                        ]
+                    )
+                )
+            
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)

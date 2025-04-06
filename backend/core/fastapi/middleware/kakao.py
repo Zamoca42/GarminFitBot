@@ -4,10 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from api.common.schema import Button, KakaoResponse, SimpleText, Template, TextCard
+from api.common.schema import Button, KakaoResponse, Template, TextCard
 from app.model import User
 from app.service.token_service import TempTokenService
-from core.config import FRONTEND_URL, KAKAO_BOT_ID
+from core.config import FRONTEND_URL, KAKAO_BOT_ID, KAKAO_BOT_PROFILE_BLOCK_ID
 from core.db import get_session
 
 
@@ -49,14 +49,23 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
         )
         return result.scalar_one_or_none()
 
-    async def _handle_existing_user(self) -> JSONResponse:
+    async def _handle_existing_user(self, user: User) -> JSONResponse:
         """이미 등록된 사용자 처리"""
         kakao_response = KakaoResponse(
             template=Template(
                 outputs=[
                     {
-                        "simpleText": SimpleText(
-                            text="이미 가민 커넥트와 챗봇 서비스가 연결되어 있습니다.\n데이터 수집 등 다른 기능을 이용해주세요.",
+                        "textCard": TextCard(
+                            title="이미 서비스가 연결되어 있습니다",
+                            description=f"{user.full_name}님의 가민 커넥트 계정이 이미 챗봇 서비스와 연결되어 있습니다.\n"
+                                      f"데이터 수집, 분석 등 다른 기능을 이용해보세요.",
+                            buttons=[
+                                Button(
+                                    action="block",
+                                    label="연결된 프로필 조회",
+                                    blockId=KAKAO_BOT_PROFILE_BLOCK_ID,
+                                )
+                            ],
                         )
                     }
                 ]
@@ -115,7 +124,7 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
 
                     # 회원가입 요청인데 이미 유저가 있는 경우
                     if self.kakao_bot_signup_path in request.url.path and user:
-                        return await self._handle_existing_user()
+                        return await self._handle_existing_user(user)
 
                     # 회원가입이 아닌 요청인데 유저가 없는 경우
                     if self.kakao_bot_signup_path not in request.url.path and not user:
