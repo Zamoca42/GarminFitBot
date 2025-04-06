@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from api.common.schema import KakaoRequest, KakaoResponse
+from api.common.schema.date_parser import DateParserRequest, DateParserResponse
 from api.v1.kakao.controller import KakaoController
 from app.service import TokenService
 from core.db import AsyncSession, get_session
@@ -50,3 +51,14 @@ async def get_garmin_profile(
     카카오 챗봇에서 연결된 가민 프로필 정보 조회
     """
     return await controller.get_garmin_profile(request)
+
+
+@router.post("/parse-date", response_model=DateParserResponse)
+async def parse_date(
+    request: DateParserRequest,
+    controller: KakaoController = Depends(get_kakao_controller),
+):
+    """
+    카카오 챗봇에서 자연어 기반 날짜 파싱 요청 처리
+    """
+    return await controller.parse_date_validation(request)

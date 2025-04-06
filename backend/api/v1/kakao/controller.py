@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 
+from langchain_google_genai import ChatGoogleGenerativeAI
 import pytz
 from celery.result import AsyncResult
 from fastapi import HTTPException, status
@@ -15,9 +16,11 @@ from api.common.schema import (
     TextCard,
     WebLinkButton,
 )
+from api.common.schema.date_parser import Date, DateParserRequest, DateParserResponse
 from app.model import User
 from app.service.token_service import TokenService
-from core.config import FRONTEND_URL
+from app.agent.prompt import create_parse_date_prompt
+from core.config import FRONTEND_URL, GEMINI_API_KEY
 from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
 from task import analysis_health_query, collect_fit_data
@@ -309,4 +312,53 @@ class KakaoController:
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            )
+
+    async def parse_date_validation(self, request: DateParserRequest) -> DateParserResponse:
+        """
+        챗봇 오픈빌더에서 자연어 기반 날짜 파싱 요청 처리
+        """
+        logger.info(f"날짜 파싱 요청: {request}")
+        try:
+            value_origin = ""
+            if request.value and request.value.origin:
+                value_origin = request.value.origin
+            else:
+                value_origin = request.utterance
+            
+            llm = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash",
+                google_api_key=GEMINI_API_KEY,
+            ).with_structured_output(Date)
+
+            prompt = create_parse_date_prompt()
+            input_data = prompt.invoke(
+                {
+                    "today": datetime.now(pytz.timezone("Asia/Seoul")).date(),
+                    "query": value_origin
+                }
+            )
+
+            date_parser = llm.invoke(input_data)
+            logger.info(f"날짜 파싱 결과: {date_parser}")
+            if date_parser:
+                response = DateParserResponse(
+                    status="SUCCESS",
+                    value=date_parser.date,
+                    message=f"{date_parser.date}"
+                )
+            else:
+                response = DateParserResponse(
+                    status="FAIL",
+                    value="",
+                    message="날짜를 인식할 수 없습니다."
+                )
+            
+            return response
+        except Exception as e:
+            logger.error(f"날짜 파싱 오류: {e}", exc_info=True)
+            return DateParserResponse(
+                status="ERROR",
+                value="",
+                message="날짜 처리 중 오류가 발생했습니다."
             )
