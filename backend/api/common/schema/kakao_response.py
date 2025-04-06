@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Any, Optional
 
 from pydantic import BaseModel
 
@@ -42,3 +42,11 @@ class Template(BaseModel):
 class KakaoResponse(BaseModel):
     version: str = "2.0"
     template: Template
+
+
+# 날짜 파서 응답 모델
+class DateParserResponse(BaseModel):
+    status: str
+    value: str
+    data: Dict[str, Any]
+    message: str
