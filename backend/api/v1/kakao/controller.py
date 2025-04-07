@@ -41,7 +41,7 @@ class KakaoController:
         """
         카카오톡 챗봇에서 데이터 수집 작업 요청
         """
-        logger.info(f"데이터 요청: {request}")
+        logger.info(f"데이터 수집 요청: {request}")
         try:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
@@ -133,8 +133,9 @@ class KakaoController:
 
     async def request_health_analysis(self, request: KakaoRequest) -> KakaoResponse:
         """
-        카카오톡 챗봇에서 건강 분석 작업 요청
+        카카오톡 챗봇에서 건강 데이터 분석 작업 요청
         """
+        logger.info(f"건강 데이터 분석 요청: {request}")
         try:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
@@ -243,6 +244,7 @@ class KakaoController:
         """
         카카오톡 챗봇에서 연결된 가민 프로필 정보 조회
         """
+        logger.info(f"가민 프로필 조회 요청: {request}")
         try:
             user_key = request.userRequest.user.id
             result = await self.session.execute(
