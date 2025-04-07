@@ -14,6 +14,7 @@ Garmin 서비스 모듈
 from ._base_service import BaseGarminService
 from .auth_manager import GarminAuthManager
 from .data_collector_service import GarminDataCollectorService
+from .date_parser_service import DateParserService
 from .stats_service import GarminStatsService
 from .summary_service import GarminSummaryService
 from .time_series_service import GarminTimeSeriesService
@@ -28,4 +29,5 @@ __all__ = [
     "GarminSummaryService",
     "GarminStatsService",
     "GarminDataCollectorService",
+    "DateParserService",
 ]

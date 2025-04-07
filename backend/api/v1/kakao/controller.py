@@ -1,10 +1,9 @@
 import logging
-from datetime import datetime
+from datetime import date, datetime
 
 import pytz
 from celery.result import AsyncResult
 from fastapi import HTTPException, status
-from langchain_google_genai import ChatGoogleGenerativeAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,11 +15,10 @@ from api.common.schema import (
     TextCard,
     WebLinkButton,
 )
-from api.common.schema.date_parser import Date, DateParserRequest, DateParserResponse
-from app.agent.prompt import create_parse_date_prompt
+from api.common.schema.date_parser import DateParserRequest, DateParserResponse
 from app.model import User
-from app.service.token_service import TokenService
-from core.config import FRONTEND_URL, GEMINI_API_KEY
+from app.service import DateParserService, TokenService
+from core.config import FRONTEND_URL
 from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
 from task import analysis_health_query, collect_fit_data
@@ -29,9 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 class KakaoController:
-    def __init__(self, session: AsyncSession, token_service: TokenService):
+    def __init__(
+        self,
+        session: AsyncSession,
+        token_service: TokenService,
+        date_parser_service: DateParserService,
+    ):
         self.session = session
         self.token_service = token_service
+        self.date_parser_service = date_parser_service
 
     async def request_data_collection(self, request: KakaoRequest) -> KakaoResponse:
         """
@@ -326,43 +330,20 @@ class KakaoController:
         """
         챗봇 오픈빌더에서 자연어 기반 날짜 파싱 요청 처리
         """
-        logger.info(f"날짜 파싱 요청: {request}")
-        try:
-            value_origin = ""
-            if request.value and request.value.origin:
-                value_origin = request.value.origin
-            else:
-                value_origin = request.utterance
+        origin = (
+            request.value.origin
+            if request.value and request.value.origin
+            else request.utterance
+        )
+        parsed_date, error_message = await self.date_parser_service.parse_to_date(
+            origin
+        )
 
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                google_api_key=GEMINI_API_KEY,
-            ).with_structured_output(Date)
+        if error_message:
+            return DateParserResponse(status="FAIL", value="", message=error_message)
 
-            prompt = create_parse_date_prompt()
-            input_data = prompt.invoke(
-                {
-                    "today": datetime.now(pytz.timezone("Asia/Seoul")).date(),
-                    "query": value_origin,
-                }
-            )
-
-            date_parser = llm.invoke(input_data)
-            logger.info(f"날짜 파싱 결과: {date_parser}")
-            if date_parser:
-                response = DateParserResponse(
-                    status="SUCCESS",
-                    value=date_parser.date,
-                    message=f"{date_parser.date}",
-                )
-            else:
-                response = DateParserResponse(
-                    status="FAIL", value="", message="날짜를 인식할 수 없습니다."
-                )
-
-            return response
-        except Exception as e:
-            logger.error(f"날짜 파싱 오류: {e}", exc_info=True)
-            return DateParserResponse(
-                status="ERROR", value="", message="날짜 처리 중 오류가 발생했습니다."
-            )
+        return DateParserResponse(
+            status="SUCCESS",
+            value=str(parsed_date),
+            message=str(parsed_date),
+        )

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from api.common.schema import KakaoRequest, KakaoResponse
 from api.common.schema.date_parser import DateParserRequest, DateParserResponse
 from api.v1.kakao.controller import KakaoController
-from app.service import TokenService
+from app.service import DateParserService, TokenService
 from core.db import AsyncSession, get_session
 
 router = APIRouter(prefix="/kakao", tags=["카카오 챗봇"])
@@ -13,11 +13,16 @@ def get_token_service() -> TokenService:
     return TokenService()
 
 
+def get_date_parser_service() -> DateParserService:
+    return DateParserService()
+
+
 def get_kakao_controller(
     session: AsyncSession = Depends(get_session),
     token_service: TokenService = Depends(get_token_service),
+    date_parser_service: DateParserService = Depends(get_date_parser_service),
 ) -> KakaoController:
-    return KakaoController(session, token_service)
+    return KakaoController(session, token_service, date_parser_service)
 
 
 @router.post("/fit/collection", response_model=KakaoResponse)
