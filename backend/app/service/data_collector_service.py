@@ -12,9 +12,12 @@ from app.domain import (
     Activity,
     DailySummary,
     HeartRate,
+    HeartRateValue,
+    HRVReading,
     SleepHRV,
     StepsValue,
     Stress,
+    StressValue,
 )
 from app.model import Activity as ActivityModel
 from app.model import (
@@ -36,9 +39,7 @@ from core.util.safe_access import (
     safe_float,
     safe_get,
     safe_get_item,
-    safe_int,
     safe_list,
-    safe_str,
 )
 
 logger = logging.getLogger(__name__)
@@ -116,9 +117,8 @@ class HeartRateCollector(BaseDataCollector):
     ) -> Optional[Dict[str, Union[HeartRate, SleepHRV, DailyHRV]]]:
         heart_rate_data = self.safe_get_cache(f"heart_rate:{date_str}")
 
-        # 데이터 유효성 검사 추가
         if not self.validate_data(heart_rate_data):
-            self.logger.warning(f"심박수 데이터가 없습니다: {date_str}")
+            self.logger.info(f"심박수 데이터가 없습니다: {date_str}")
             return None
 
         return {
@@ -132,7 +132,7 @@ class HeartRateCollector(BaseDataCollector):
         data: Dict[str, Union[HeartRate, SleepHRV, DailyHRV]],
     ) -> Optional[Dict[str, Any]]:
         try:
-            heart_rate_data = safe_get_item(data, "heart_rate_data")
+            heart_rate_data = safe_get_item(data, "heart_rate_data", HeartRate)
 
             if not self.validate_data(heart_rate_data):
                 self.logger.warning(
@@ -140,28 +140,32 @@ class HeartRateCollector(BaseDataCollector):
                 )
                 return None
 
-            # 안전한 값 추출
-            resting_hr = safe_int(safe_get(heart_rate_data, "resting_heart_rate", 0))
-            max_hr = safe_int(safe_get(heart_rate_data, "max_heart_rate", 0))
-            min_hr = safe_int(safe_get(heart_rate_data, "min_heart_rate", 0))
-            heart_rate_values = safe_list(
-                safe_get(heart_rate_data, "heart_rate_values", [])
+            resting_hr = safe_get(
+                heart_rate_data, "resting_heart_rate", HeartRate.resting_heart_rate
+            )
+            max_hr = safe_get(
+                heart_rate_data, "max_heart_rate", HeartRate.max_heart_rate
+            )
+            min_hr = safe_get(
+                heart_rate_data, "min_heart_rate", HeartRate.min_heart_rate
+            )
+            heart_rate_values: List[HeartRateValue] = safe_list(
+                safe_get(heart_rate_data, "heart_rate_values")
             )
             local_offset = safe_float(safe_get(heart_rate_data, "local_offset", 0.0))
 
-            # 평균 심박수 계산
             avg_heart_rate = None
             valid_readings = []
-            for reading in heart_rate_values:
-                if reading is not None:
-                    hr_value = safe_get(reading, "heart_rate")
-                    if hr_value is not None:
+            if heart_rate_values:
+                for reading in heart_rate_values:
+                    hr_value = reading.heart_rate
+                    if hr_value:
                         valid_readings.append(hr_value)
 
             if valid_readings:
                 avg_heart_rate = sum(valid_readings) / len(valid_readings)
 
-            daily_summary = HeartRateDaily(
+            heart_rate_daily_summary = HeartRateDaily(
                 user_id=user_id,
                 date=target_date,
                 resting_hr=resting_hr,
@@ -171,28 +175,33 @@ class HeartRateCollector(BaseDataCollector):
             )
 
             readings = []
+            if not heart_rate_values:
+                self.logger.info(
+                    f"심박수 시계열 데이터가 없습니다: 사용자 {user_id}, 날짜 {target_date}"
+                )
+                return {
+                    "daily_summary": heart_rate_daily_summary,
+                    "readings": [],
+                }
+
             for reading in heart_rate_values:
                 try:
-                    if reading is None:
-                        continue
-
-                    start_time_gmt = safe_get(reading, "start_time_gmt")
-                    heart_rate_value = safe_get(reading, "heart_rate")
+                    start_time_gmt = reading.start_time_gmt
+                    heart_rate_value = reading.heart_rate
 
                     if start_time_gmt is None:
+                        self.logger.info("심박수 start_time_gmt가 None 있음")
                         continue
 
-                    # 로컬 시간 계산
                     start_time_local = start_time_gmt.replace(tzinfo=None) + timedelta(
                         seconds=local_offset
                     )
-
                     readings.append(
                         HeartRateReading(
                             start_time_gmt=start_time_gmt,
                             start_time_local=start_time_local,
                             heart_rate=heart_rate_value,
-                            daily_summary=daily_summary,
+                            daily_summary=heart_rate_daily_summary,
                         )
                     )
                 except Exception as e:
@@ -200,7 +209,7 @@ class HeartRateCollector(BaseDataCollector):
                     continue
 
             return {
-                "daily_summary": daily_summary,
+                "daily_summary": heart_rate_daily_summary,
                 "readings": readings,
             }
 
@@ -248,9 +257,7 @@ class StressCollector(BaseDataCollector):
         daily_summary = self.safe_get_cache(f"daily_summary:{date_str}")
 
         if not self.validate_data(stress_data) or not self.validate_data(daily_summary):
-            self.logger.warning(
-                f"스트레스 또는 일일 요약 데이터가 없습니다: {date_str}"
-            )
+            self.logger.info(f"스트레스 또는 일일 요약 데이터가 없습니다: {date_str}")
             return None
 
         return {"stress_data": stress_data, "daily_summary": daily_summary}
@@ -262,27 +269,35 @@ class StressCollector(BaseDataCollector):
         data: Dict[str, Union[Stress, DailySummary]],
     ) -> Optional[Dict[str, Any]]:
         try:
-            stress_data = safe_get_item(data, "stress_data")
-            daily_summary = safe_get_item(data, "daily_summary")
+            stress_data = safe_get_item(data, "stress_data", Stress)
+            daily_summary = safe_get_item(data, "daily_summary", DailySummary)
 
             if not self.validate_data(stress_data) or not self.validate_data(
                 daily_summary
             ):
-                self.logger.warning(
+                self.logger.info(
                     f"스트레스 또는 일일 요약 데이터가 유효하지 않습니다: 사용자 {user_id}, 날짜 {target_date}"
                 )
                 return None
 
-            avg_stress_level = safe_int(safe_get(stress_data, "avg_stress_level", 0))
-            max_stress_level = safe_int(safe_get(stress_data, "max_stress_level", 0))
-            stress_duration = safe_int(safe_get(daily_summary, "stress_duration", 0))
-            rest_stress_duration = safe_int(
-                safe_get(daily_summary, "rest_stress_duration", 0)
+            avg_stress_level = safe_get(
+                stress_data, "avg_stress_level", Stress.avg_stress_level
             )
-            stress_values = safe_list(safe_get(stress_data, "stress_values", []))
+            max_stress_level = safe_get(
+                stress_data, "max_stress_level", Stress.max_stress_level
+            )
+            stress_duration = safe_get(
+                daily_summary, "stress_duration", DailySummary.stress_duration
+            )
+            rest_stress_duration = safe_get(
+                daily_summary, "rest_stress_duration", DailySummary.rest_stress_duration
+            )
+            stress_values: List[StressValue] = safe_list(
+                safe_get(stress_data, "stress_values")
+            )
             local_offset = safe_float(safe_get(daily_summary, "local_offset", 0.0))
 
-            daily_summary_data = StressDaily(
+            stress_daily_summary = StressDaily(
                 user_id=user_id,
                 date=target_date,
                 avg_stress_level=avg_stress_level,
@@ -292,10 +307,23 @@ class StressCollector(BaseDataCollector):
             )
 
             readings = []
+            if not stress_values:
+                self.logger.info(
+                    f"스트레스 시계열 데이터가 없습니다: 사용자 {user_id}, 날짜 {target_date}"
+                )
+                return {
+                    "daily_summary": stress_daily_summary,
+                    "readings": [],
+                }
+
             for reading in stress_values:
                 try:
-                    start_time_gmt = safe_get(reading, "start_time_gmt")
-                    stress_level = safe_get(reading, "stress_level")
+                    start_time_gmt = reading.start_time_gmt
+                    stress_level = reading.stress_level
+
+                    if start_time_gmt is None:
+                        self.logger.info("스트레스 start_time_gmt가 None 있음")
+                        continue
 
                     start_time_local = start_time_gmt.replace(tzinfo=None) + timedelta(
                         seconds=local_offset
@@ -306,7 +334,7 @@ class StressCollector(BaseDataCollector):
                             start_time_gmt=start_time_gmt,
                             start_time_local=start_time_local,
                             stress_level=stress_level,
-                            daily_summary=daily_summary_data,
+                            daily_summary=stress_daily_summary,
                         )
                     )
                 except Exception as e:
@@ -314,7 +342,7 @@ class StressCollector(BaseDataCollector):
                     continue
 
             return {
-                "daily_summary": daily_summary_data,
+                "daily_summary": stress_daily_summary,
                 "readings": readings,
             }
 
@@ -374,34 +402,49 @@ class StepsCollector(BaseDataCollector):
         data: Dict[str, Union[DailySummary, List[StepsValue]]],
     ) -> Optional[Dict[str, Any]]:
         try:
-            daily_summary_data = safe_get_item(data, "daily_summary")
-            steps_data = safe_get_item(data, "steps_data", [])
+            daily_summary_data = safe_get_item(data, "daily_summary", DailySummary)
+            steps_data = safe_get_item(data, "steps_data", List[StepsValue])
 
             if not self.validate_data(daily_summary_data):
-                self.logger.warning(
+                self.logger.info(
                     f"일일 요약 데이터가 없습니다. 사용자: {user_id}, 날짜: {target_date}"
                 )
                 return None
 
             # 안전한 값 변환
-            floors_climbed = safe_int(
-                safe_get(daily_summary_data, "floors_ascended", 0)
+            floors_climbed = safe_get(
+                daily_summary_data, "floors_ascended", DailySummary.floors_ascended
             )
             local_offset = safe_float(safe_get(daily_summary_data, "local_offset", 0.0))
-            total_steps = safe_int(safe_get(daily_summary_data, "total_steps", 0))
-            goal_steps = safe_int(safe_get(daily_summary_data, "daily_step_goal", 0))
+            total_steps = safe_get(
+                daily_summary_data, "total_steps", DailySummary.total_steps
+            )
+            goal_steps = safe_get(
+                daily_summary_data, "daily_step_goal", DailySummary.daily_step_goal
+            )
             distance_meters = safe_float(
-                safe_get(daily_summary_data, "total_distance_meters", 0)
+                safe_get(
+                    daily_summary_data,
+                    "total_distance_meters",
+                    DailySummary.total_distance_meters,
+                )
             )
-            active_kilocalories = safe_int(
-                safe_get(daily_summary_data, "active_kilocalories", 0)
+            active_kilocalories = safe_get(
+                daily_summary_data,
+                "active_kilocalories",
+                DailySummary.active_kilocalories,
             )
-            highly_active_seconds = safe_int(
-                safe_get(daily_summary_data, "highly_active_seconds", 0)
+            highly_active_seconds = safe_get(
+                daily_summary_data,
+                "highly_active_seconds",
+                DailySummary.highly_active_seconds,
             )
-            active_seconds = safe_int(safe_get(daily_summary_data, "active_seconds", 0))
+            active_seconds = safe_get(
+                daily_summary_data, "active_seconds", DailySummary.active_seconds
+            )
+            steps_data: List[StepsValue] = safe_list(steps_data)
 
-            daily_summary = StepsDaily(
+            steps_daily_summary = StepsDaily(
                 user_id=user_id,
                 date=target_date,
                 total_steps=total_steps,
@@ -414,45 +457,50 @@ class StepsCollector(BaseDataCollector):
 
             # 상세 측정값 처리 (안전하게)
             readings = []
-            if steps_data:
-                for reading in safe_list(steps_data):
-                    try:
-                        if reading is None:
-                            continue
+            if not steps_data:
+                self.logger.info(
+                    f"걸음수 시계열 데이터가 없습니다: 사용자 {user_id}, 날짜 {target_date}"
+                )
+                return {
+                    "daily_summary": steps_daily_summary,
+                    "readings": [],
+                }
 
-                        start_time_gmt = safe_get(reading, "start_time_gmt")
-                        end_time_gmt = safe_get(reading, "end_time_gmt")
+            for reading in steps_data:
+                try:
+                    start_time_gmt = reading.start_time_gmt
+                    end_time_gmt = reading.end_time_gmt
 
-                        if start_time_gmt is None or end_time_gmt is None:
-                            continue
-
-                        start_time_local = start_time_gmt.replace(
-                            tzinfo=None
-                        ) + timedelta(seconds=local_offset)
-                        end_time_local = end_time_gmt.replace(tzinfo=None) + timedelta(
-                            seconds=local_offset
-                        )
-
-                        readings.append(
-                            StepsIntraday(
-                                start_time_gmt=start_time_gmt,
-                                end_time_gmt=end_time_gmt,
-                                start_time_local=start_time_local,
-                                end_time_local=end_time_local,
-                                steps=safe_int(safe_get(reading, "steps", 0)),
-                                activity_level=safe_str(
-                                    safe_get(reading, "primary_activity_level", "")
-                                ),
-                                intensity=0,  # 기본값
-                                daily_summary=daily_summary,
-                            )
-                        )
-                    except Exception as e:
-                        self.log_mapping_error(e, {"reading": str(reading)})
+                    if start_time_gmt is None or end_time_gmt is None:
+                        self.logger.info("걸음수 time_gmt가 None 있음")
                         continue
 
+                    start_time_local = start_time_gmt.replace(tzinfo=None) + timedelta(
+                        seconds=local_offset
+                    )
+
+                    end_time_local = end_time_gmt.replace(tzinfo=None) + timedelta(
+                        seconds=local_offset
+                    )
+
+                    readings.append(
+                        StepsIntraday(
+                            start_time_gmt=start_time_gmt,
+                            end_time_gmt=end_time_gmt,
+                            start_time_local=start_time_local,
+                            end_time_local=end_time_local,
+                            steps=reading.steps,
+                            activity_level=reading.primary_activity_level,
+                            intensity=0,
+                            daily_summary=steps_daily_summary,
+                        )
+                    )
+                except Exception as e:
+                    self.log_mapping_error(e, {"reading": str(reading)})
+                    continue
+
             return {
-                "daily_summary": daily_summary,
+                "daily_summary": steps_daily_summary,
                 "readings": readings,
             }
         except Exception as e:
@@ -500,7 +548,7 @@ class SleepCollector(BaseDataCollector):
         hrv_data = self.safe_get_cache(f"sleep_hrv:{date_str}")
 
         if not self.validate_data(sleep_data):
-            self.logger.warning(f"수면 데이터가 없습니다: {date_str}")
+            self.logger.info(f"수면 데이터가 없습니다: {date_str}")
             return None
 
         movements = []
@@ -520,60 +568,32 @@ class SleepCollector(BaseDataCollector):
         data: Dict[str, Union[SleepData, SleepHRV, List[SleepMovement]]],
     ) -> Optional[Dict[str, Any]]:
         try:
-            sleep_data = safe_get_item(data, "sleep_data")
-            hrv_data = safe_get_item(data, "hrv_data")
-            movements = safe_get_item(data, "movements", [])
+            sleep_data = safe_get_item(data, "sleep_data", SleepData)
+            hrv_data = safe_get_item(data, "hrv_data", SleepHRV)
+            movements = safe_get_item(data, "movements", List[SleepMovement])
 
             if not self.validate_data(sleep_data):
-                self.logger.warning(
+                self.logger.info(
                     f"수면 데이터가 유효하지 않습니다: 사용자 {user_id}, 날짜 {target_date}"
                 )
                 return None
 
             # 안전한 값 추출
-            daily_sleep_dto = safe_get(sleep_data, "daily_sleep_dto")
+            daily_sleep_dto = sleep_data.daily_sleep_dto
             if not self.validate_data(daily_sleep_dto):
-                self.logger.warning(
+                self.logger.info(
                     f"수면 세션 데이터가 유효하지 않습니다: 사용자 {user_id}, 날짜 {target_date}"
                 )
                 return None
 
-            sleep_start_timestamp_gmt = safe_get(
-                daily_sleep_dto, "sleep_start_timestamp_gmt", 0
-            )
-            sleep_end_timestamp_gmt = safe_get(
-                daily_sleep_dto, "sleep_end_timestamp_gmt", 0
-            )
-            sleep_start_timestamp_local = safe_get(
-                daily_sleep_dto, "sleep_start_timestamp_local", 0
-            )
-            sleep_end_timestamp_local = safe_get(
-                daily_sleep_dto, "sleep_end_timestamp_local", 0
-            )
-            sleep_time_seconds = safe_int(
-                safe_get(daily_sleep_dto, "sleep_time_seconds", 0)
-            )
-            deep_sleep_seconds = safe_int(
-                safe_get(daily_sleep_dto, "deep_sleep_seconds", 0)
-            )
-            light_sleep_seconds = safe_int(
-                safe_get(daily_sleep_dto, "light_sleep_seconds", 0)
-            )
-            rem_sleep_seconds = safe_int(
-                safe_get(daily_sleep_dto, "rem_sleep_seconds", 0)
-            )
-            awake_sleep_seconds = safe_int(
-                safe_get(daily_sleep_dto, "awake_sleep_seconds", 0)
-            )
-            avg_sleep_stress = safe_int(
-                safe_get(daily_sleep_dto, "avg_sleep_stress", 0)
-            )
-            average_respiration_value = safe_float(
-                safe_get(daily_sleep_dto, "average_respiration_value", 0.0)
-            )
-            average_sp_o2_value = safe_float(
-                safe_get(daily_sleep_dto, "average_sp_o2_value", 0.0)
-            )
+            sleep_start_timestamp_gmt = daily_sleep_dto.sleep_start_timestamp_gmt
+            sleep_end_timestamp_gmt = daily_sleep_dto.sleep_end_timestamp_gmt
+            sleep_start_timestamp_local = daily_sleep_dto.sleep_start_timestamp_local
+            sleep_end_timestamp_local = daily_sleep_dto.sleep_end_timestamp_local
+            movements: List[SleepMovement] = safe_list(movements)
+            hrv_readings_data: List[HRVReading] = []
+            if self.validate_data(hrv_data) and hasattr(hrv_data, "hrv_readings"):
+                hrv_readings_data = safe_list(hrv_data.hrv_readings)
 
             # 타임스탬프를 datetime 객체로 변환
             try:
@@ -606,99 +626,78 @@ class SleepCollector(BaseDataCollector):
                 end_time_gmt=end_time_gmt,
                 start_time_local=start_time_local,
                 end_time_local=end_time_local,
-                total_seconds=sleep_time_seconds,
-                deep_sleep_seconds=deep_sleep_seconds,
-                light_sleep_seconds=light_sleep_seconds,
-                rem_sleep_seconds=rem_sleep_seconds,
-                awake_seconds=awake_sleep_seconds,
-                avg_stress_level=avg_sleep_stress,
-                avg_respiration=average_respiration_value,
-                avg_spo2=average_sp_o2_value,
+                total_seconds=daily_sleep_dto.sleep_time_seconds,
+                deep_sleep_seconds=daily_sleep_dto.deep_sleep_seconds,
+                light_sleep_seconds=daily_sleep_dto.light_sleep_seconds,
+                rem_sleep_seconds=daily_sleep_dto.rem_sleep_seconds,
+                awake_seconds=daily_sleep_dto.awake_sleep_seconds,
+                avg_stress_level=daily_sleep_dto.avg_sleep_stress,
+                avg_respiration=daily_sleep_dto.average_respiration_value,
+                avg_spo2=daily_sleep_dto.average_sp_o2_value,
             )
 
             # HRV 데이터가 있는 경우 추가
             if self.validate_data(hrv_data):
-                hrv_summary = safe_get(hrv_data, "hrv_summary")
+                hrv_summary = safe_get(hrv_data, "hrv_summary", SleepHRV.hrv_summary)
                 if self.validate_data(hrv_summary):
-                    sleep_session.avg_hrv = safe_int(
-                        safe_get(hrv_summary, "last_night_avg", 0)
-                    )
-                    sleep_session.hrv_weekly_avg = safe_int(
-                        safe_get(hrv_summary, "weekly_avg", 0)
-                    )
-                    sleep_session.hrv_last_night_avg = safe_int(
-                        safe_get(hrv_summary, "last_night_avg", 0)
-                    )
-                    sleep_session.hrv_last_night_5_min_high = safe_int(
-                        safe_get(hrv_summary, "last_night_5_min_high", 0)
-                    )
-                    sleep_session.hrv_status = safe_str(
-                        safe_get(hrv_summary, "status", "")
-                    )
-                    sleep_session.hrv_feedback = safe_str(
-                        safe_get(hrv_summary, "feedback_phrase", "")
-                    )
+                    sleep_session.avg_hrv = hrv_summary.last_night_avg
+                    sleep_session.hrv_weekly_avg = hrv_summary.weekly_avg
+                    sleep_session.hrv_last_night_avg = hrv_summary.last_night_avg
 
-                    baseline = safe_get(hrv_summary, "baseline")
+                    sleep_session.hrv_last_night_5_min_high = (
+                        hrv_summary.last_night_5_min_high
+                    )
+                    sleep_session.hrv_status = hrv_summary.status
+                    sleep_session.hrv_feedback = hrv_summary.feedback_phrase
+
+                    baseline = hrv_summary.baseline
                     if self.validate_data(baseline):
-                        sleep_session.hrv_baseline_low_upper = safe_int(
-                            safe_get(baseline, "low_upper", 0)
+                        sleep_session.hrv_baseline_low_upper = baseline.low_upper
+                        sleep_session.hrv_baseline_balanced_low = baseline.balanced_low
+                        sleep_session.hrv_baseline_balanced_upper = (
+                            baseline.balanced_upper
                         )
-                        sleep_session.hrv_baseline_balanced_low = safe_int(
-                            safe_get(baseline, "balanced_low", 0)
-                        )
-                        sleep_session.hrv_baseline_balanced_upper = safe_int(
-                            safe_get(baseline, "balanced_upper", 0)
-                        )
-                        sleep_session.hrv_baseline_marker_value = safe_float(
-                            safe_get(baseline, "marker_value", 0.0)
-                        )
+                        sleep_session.hrv_baseline_marker_value = baseline.marker_value
 
             # 수면 움직임 데이터 생성
             movement_readings = []
-            for movement in safe_list(movements):
-                try:
-                    if movement is None:
-                        continue
+            if movements:
+                for movement in movements:
+                    try:
+                        start_gmt = movement.start_gmt
+                        end_gmt = movement.end_gmt
+                        activity_level = movement.activity_level
 
-                    start_gmt = safe_get(movement, "start_gmt")
-                    end_gmt = safe_get(movement, "end_gmt")
-                    activity_level = safe_get(movement, "activity_level", "")
+                        if start_gmt is None or end_gmt is None:
+                            continue
 
-                    if start_gmt is None or end_gmt is None:
-                        continue
+                        start_time_gmt = start_gmt.replace(tzinfo=timezone.utc)
+                        interval = int((end_gmt - start_gmt).total_seconds())
+                        start_time_local = start_time_gmt.replace(
+                            tzinfo=None
+                        ) + timedelta(milliseconds=local_diff)
 
-                    start_time_gmt = start_gmt.replace(tzinfo=timezone.utc)
-                    interval = int((end_gmt - start_gmt).total_seconds())
-                    start_time_local = start_time_gmt.replace(tzinfo=None) + timedelta(
-                        milliseconds=local_diff
-                    )
-
-                    movement_readings.append(
-                        SleepMovementModel(
-                            start_time_gmt=start_time_gmt,
-                            start_time_local=start_time_local,
-                            interval=interval,
-                            activity_level=activity_level,
-                            session=sleep_session,
+                        movement_readings.append(
+                            SleepMovementModel(
+                                start_time_gmt=start_time_gmt,
+                                start_time_local=start_time_local,
+                                interval=interval,
+                                activity_level=activity_level,
+                                session=sleep_session,
+                            )
                         )
-                    )
-                except Exception as e:
-                    self.log_mapping_error(e, {"movement": str(movement)})
-                    continue
+                    except Exception as e:
+                        self.log_mapping_error(e, {"movement": str(movement)})
+                        continue
 
             # HRV 상세 데이터 생성
             hrv_readings = []
-            if self.validate_data(hrv_data) and hasattr(hrv_data, "hrv_readings"):
-                hrv_readings_data = safe_list(hrv_data.hrv_readings)
+            if hrv_readings_data:
                 for reading in hrv_readings_data:
                     try:
-                        if reading is None:
-                            continue
-
-                        reading_time_gmt = safe_get(reading, "reading_time_gmt")
-                        reading_time_local = safe_get(reading, "reading_time_local")
-                        hrv_value = safe_int(safe_get(reading, "hrv_value", 0))
+                        reading_time_gmt = reading.reading_time_gmt
+                        reading_time_local = reading.reading_time_local
+                        hrv_value = reading.hrv_value
 
                         if reading_time_gmt is None or reading_time_local is None:
                             continue
@@ -770,19 +769,21 @@ class ActivityCollector(BaseDataCollector):
     def fetch_data(self, date_str: str) -> Optional[List[Activity]]:
         all_activities = self.safe_get_cache(f"activities:{date_str}")
         if not self.validate_data(all_activities):
-            self.logger.warning(f"활동 데이터가 없습니다: {date_str}")
+            self.logger.info(f"활동 데이터가 없습니다: {date_str}")
             return None
 
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             target_date_start = datetime.combine(target_date, datetime.min.time())
             target_date_end = datetime.combine(target_date, datetime.max.time())
+            all_activities: List[Activity] = safe_list(all_activities)
 
             activities = []
-            for activity in safe_list(all_activities):
-                if activity is None:
+
+            for activity in all_activities:
+                if activity is None or not activity.start_time_local:
                     continue
-                start_time_local = safe_get(activity, "start_time_local")
+                start_time_local = activity.start_time_local
                 if (
                     start_time_local
                     and target_date_start <= start_time_local <= target_date_end
@@ -803,47 +804,42 @@ class ActivityCollector(BaseDataCollector):
     ) -> Dict[str, Any]:
         try:
             saved_activities = []
+            activities: List[Activity] = safe_list(activities)
 
-            for activity_detail in safe_list(activities):
+            if not activities:
+                self.logger.info(f"해당 날짜({target_date})의 활동이 없습니다.")
+                return {"activities": []}
+
+            for activity_detail in activities:
                 try:
                     if activity_detail is None:
                         continue
 
                     # 필수 데이터 확인
-                    activity_id = safe_int(safe_get(activity_detail, "activity_id", 0))
-                    activity_type_obj = safe_get(activity_detail, "activity_type")
-                    start_time_gmt = safe_get(activity_detail, "start_time_gmt")
-                    start_time_local = safe_get(activity_detail, "start_time_local")
-                    duration = safe_float(safe_get(activity_detail, "duration", 0.0))
-                    calories = safe_int(safe_get(activity_detail, "calories", 0))
+                    activity_id = activity_detail.activity_id
+                    activity_type_obj = activity_detail.activity_type
+                    start_time_gmt = activity_detail.start_time_gmt
+                    start_time_local = activity_detail.start_time_local
+                    duration = activity_detail.duration or 0.0
+                    calories = activity_detail.calories or 0
 
                     if (
                         not start_time_gmt
                         or not start_time_local
                         or not activity_type_obj
                     ):
-                        self.logger.warning(
+                        self.logger.info(
                             f"활동 필수 데이터 누락: {activity_id} 데이터: {start_time_gmt}, {start_time_local}, {activity_type_obj}"
                         )
                         continue
 
                     # 추가 데이터 안전하게 추출
-                    activity_type_key = safe_str(
-                        safe_get(
-                            safe_get(activity_detail, "activity_type"),
-                            "type_key",
-                            "unknown",
-                        )
-                    )
-                    distance = safe_float(safe_get(activity_detail, "distance"))
-                    average_hr = safe_int(safe_get(activity_detail, "average_hr"))
-                    max_hr = safe_int(safe_get(activity_detail, "max_hr"))
-                    average_speed = safe_float(
-                        safe_get(activity_detail, "average_speed")
-                    )
-                    elevation_gain = safe_float(
-                        safe_get(activity_detail, "elevation_gain")
-                    )
+                    activity_type_key = activity_detail.activity_type.type_key
+                    distance = activity_detail.distance
+                    average_hr = activity_detail.average_hr
+                    max_hr = activity_detail.max_hr
+                    average_speed = activity_detail.average_speed
+                    elevation_gain = activity_detail.elevation_gain
 
                     # 종료 시간 계산
                     end_time_utc = start_time_gmt + timedelta(seconds=int(duration))
@@ -871,11 +867,7 @@ class ActivityCollector(BaseDataCollector):
                 except Exception as e:
                     self.log_mapping_error(
                         e,
-                        {
-                            "activity_id": safe_get(
-                                activity_detail, "activity_id", "unknown"
-                            )
-                        },
+                        {"activity_id": activity_detail.activity_id or "unknown"},
                     )
                     continue
 
@@ -1048,8 +1040,6 @@ class GarminDataCollectorService(BaseGarminService):
                     date_str,
                     lambda date_str, client: SleepHRV.get(date_str, client=client),
                 )
-            else:
-                logger.info("수면 데이터 없음")
 
             # 활동 데이터
             self._fetch_with_cache(
@@ -1088,7 +1078,6 @@ class GarminDataCollectorService(BaseGarminService):
             # 데이터 가져오기
             data = collector.fetch_data(date_str)
             if not data:
-                logger.info(f"{collector_name}에서 데이터를 가져오지 못함")
                 return None
 
             # 데이터 매핑

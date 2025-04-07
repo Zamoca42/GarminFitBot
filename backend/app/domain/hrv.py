@@ -57,11 +57,11 @@ class SleepHRV(Data):
     sleep_start_timestamp_local: datetime
     sleep_end_timestamp_local: datetime
 
+    # [측정값]
+    hrv_readings: List[HRVReading]
+
     # [HRV 요약]
     hrv_summary: Optional[HRVSummary] = None
-
-    # [측정값]
-    hrv_readings: Optional[List[HRVReading]] = None
 
     @classmethod
     def get(cls, date: str, *, client=None) -> Optional["SleepHRV"]:

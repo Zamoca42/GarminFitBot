@@ -41,12 +41,12 @@ class Stress(Data):
     start_timestamp_local: datetime
     end_timestamp_local: datetime
 
-    # [스트레스 통계]
-    max_stress_level: int
-    avg_stress_level: int
-
     # [데이터 구조]
-    stress_values: List[StressValue]  # 변환된 측정값 목록
+    stress_values: List[StressValue]
+
+    # [스트레스 통계]
+    max_stress_level: Optional[int] = None
+    avg_stress_level: Optional[int] = None
 
     @property
     def local_offset(self) -> int:

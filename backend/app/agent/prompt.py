@@ -296,11 +296,13 @@ def create_final_report_prompt():
         """
     )
 
+
 def create_parse_date_prompt():
-    return ChatPromptTemplate.from_messages([
-        (
-            "system",
-            """
+    return ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """
             당신은 한국어 쿼리에서 날짜를 정확히 추출하는 전문가입니다.
             오늘 날짜는 {today}입니다.
 
@@ -311,7 +313,8 @@ def create_parse_date_prompt():
                - 예: "지난주" → 지난 주의 **월요일 날짜**
             3. 여러 날짜 표현이 있어도 가장 중심이 되는 하나만 추출하세요.
             4. 날짜가 명시되어 있지 않다면 오늘 날짜를 반환하세요.
-            """
-        ),
-        ("human", "{query}")
-    ])
+            """,
+            ),
+            ("human", "{query}"),
+        ]
+    )

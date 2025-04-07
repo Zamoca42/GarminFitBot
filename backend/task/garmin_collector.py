@@ -120,7 +120,6 @@ class GarminDataCollectionTask(DatabaseTask):
             if not result:
                 raise Exception("데이터를 수집할 수 없습니다.")
 
-            logger.info(f"사용자 {user_id}의 {target_date} 데이터 수집 완료")
             return result
 
         except Exception as e:
