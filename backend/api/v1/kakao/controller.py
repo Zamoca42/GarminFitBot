@@ -1,10 +1,10 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 
-from langchain_google_genai import ChatGoogleGenerativeAI
 import pytz
 from celery.result import AsyncResult
 from fastapi import HTTPException, status
+from langchain_google_genai import ChatGoogleGenerativeAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,15 +17,16 @@ from api.common.schema import (
     WebLinkButton,
 )
 from api.common.schema.date_parser import Date, DateParserRequest, DateParserResponse
+from app.agent.prompt import create_parse_date_prompt
 from app.model import User
 from app.service.token_service import TokenService
-from app.agent.prompt import create_parse_date_prompt
 from core.config import FRONTEND_URL, GEMINI_API_KEY
 from core.util.redis import is_duplicate_request
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
 from task import analysis_health_query, collect_fit_data
 
 logger = logging.getLogger(__name__)
+
 
 class KakaoController:
     def __init__(self, session: AsyncSession, token_service: TokenService):
@@ -41,10 +42,10 @@ class KakaoController:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
             detail_params = request.action.detailParams
-            date = detail_params["date"]["value"]
+            formatted_date = detail_params["date"]["value"]
             origin_date = detail_params["date"]["origin"]
             task_name = collect_fit_data.name
-            task_id = generate_task_id(user_key, origin_date, task_name)
+            task_id = generate_task_id(user_key, formatted_date, task_name)
             celery_task_id = generate_celery_task_id(task_id)
             task_result = AsyncResult(celery_task_id)
             task_status_url = f"{FRONTEND_URL}/{task_id_to_path(task_id)}/status"
@@ -55,9 +56,8 @@ class KakaoController:
                         outputs=[
                             {
                                 "simpleText": SimpleText(
-                                    text=
-                                    f"요청하신 수집일: {origin_date}\n"
-                                    f"수집한 날짜: {date}\n"
+                                    text=f"요청하신 수집일: {origin_date}\n"
+                                    f"수집한 날짜: {formatted_date}\n"
                                     f"수집이 완료되었어요.\n"
                                     f"다음 날 다시 요청해 주세요 😊"
                                 )
@@ -89,7 +89,7 @@ class KakaoController:
             collect_fit_data.apply_async(
                 kwargs={
                     "kakao_client_id": user_key,
-                    "target_date": date,
+                    "target_date": formatted_date,
                     "user_timezone": user_timezone,
                 },
                 task_id=celery_task_id,
@@ -320,7 +320,9 @@ class KakaoController:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
             )
 
-    async def parse_date_validation(self, request: DateParserRequest) -> DateParserResponse:
+    async def parse_date_validation(
+        self, request: DateParserRequest
+    ) -> DateParserResponse:
         """
         챗봇 오픈빌더에서 자연어 기반 날짜 파싱 요청 처리
         """
@@ -331,7 +333,7 @@ class KakaoController:
                 value_origin = request.value.origin
             else:
                 value_origin = request.utterance
-            
+
             llm = ChatGoogleGenerativeAI(
                 model="gemini-2.0-flash",
                 google_api_key=GEMINI_API_KEY,
@@ -341,7 +343,7 @@ class KakaoController:
             input_data = prompt.invoke(
                 {
                     "today": datetime.now(pytz.timezone("Asia/Seoul")).date(),
-                    "query": value_origin
+                    "query": value_origin,
                 }
             )
 
@@ -351,20 +353,16 @@ class KakaoController:
                 response = DateParserResponse(
                     status="SUCCESS",
                     value=date_parser.date,
-                    message=f"{date_parser.date}"
+                    message=f"{date_parser.date}",
                 )
             else:
                 response = DateParserResponse(
-                    status="FAIL",
-                    value="",
-                    message="날짜를 인식할 수 없습니다."
+                    status="FAIL", value="", message="날짜를 인식할 수 없습니다."
                 )
-            
+
             return response
         except Exception as e:
             logger.error(f"날짜 파싱 오류: {e}", exc_info=True)
             return DateParserResponse(
-                status="ERROR",
-                value="",
-                message="날짜 처리 중 오류가 발생했습니다."
+                status="ERROR", value="", message="날짜 처리 중 오류가 발생했습니다."
             )
