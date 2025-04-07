@@ -45,12 +45,12 @@ class HeartRate(Data):
     end_timestamp_local: datetime
 
     # [데이터 구조]
-    heart_rate_value_descriptors: List[HeartRateDescriptor]
-    heart_rate_values: List[HeartRateValue]  # 변환된 측정값 목록
+    heart_rate_value_descriptors: Optional[List[HeartRateDescriptor]] = None
+    heart_rate_values: Optional[List[HeartRateValue]] = None  # 변환된 측정값 목록
 
     # [심박수 통계]
-    max_heart_rate: int
-    min_heart_rate: int
+    max_heart_rate: Optional[int] = None
+    min_heart_rate: Optional[int] = None
     resting_heart_rate: Optional[int] = None
     last_seven_days_avg_resting_heart_rate: Optional[int] = None
 
@@ -69,18 +69,20 @@ class HeartRate(Data):
         raw_data = client.connectapi(path, params=params)
         if not raw_data:
             return None
-
         try:
             data = camel_to_snake_dict(raw_data)
-
+            heart_rate_values = data.get("heart_rate_values", [])
             values = []
-            for timestamp, heart_rate in data.get("heart_rate_values", []):
-                values.append(
-                    HeartRateValue(
-                        timestamp=timestamp,
-                        heart_rate=int(heart_rate) if heart_rate is not None else None,
+            if heart_rate_values:
+                for timestamp, heart_rate in heart_rate_values:
+                    values.append(
+                        HeartRateValue(
+                            timestamp=timestamp,
+                            heart_rate=(
+                                int(heart_rate) if heart_rate is not None else None
+                            ),
+                        )
                     )
-                )
             data["heart_rate_values"] = values
 
             return cls(**data)

@@ -25,7 +25,7 @@ class KakaoBotMiddleware(BaseHTTPMiddleware):
             if "/parse-date" in request.url.path:
                 response = await call_next(request)
                 return response
-            
+
             if "/kakao" in request.url.path:
                 body = await request.json()
 
@@ -121,7 +121,9 @@ class KakaoUserMiddleware(BaseHTTPMiddleware):
             if "/kakao" in request.url.path:
                 body = await request.json()
 
-                user_key = body.get("userRequest", {}).get("user", {}).get("id") or body.get("user", {}).get("id")
+                user_key = body.get("userRequest", {}).get("user", {}).get(
+                    "id"
+                ) or body.get("user", {}).get("id")
                 if not user_key:
                     return JSONResponse(
                         status_code=status.HTTP_400_BAD_REQUEST,

@@ -6,14 +6,25 @@
 """
 
 import logging
-from typing import Any, Dict, List, Optional, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar, cast, overload
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+K = TypeVar("K")
 
 
-def safe_get(obj: Any, attr_name: str, default: Any = None) -> Any:
+@overload
+def safe_get(obj: Any, attr_name: str) -> Optional[T]:
+    pass
+
+
+@overload
+def safe_get(obj: Any, attr_name: str, default: T) -> T:
+    pass
+
+
+def safe_get(obj: Any, attr_name: str, default: Any = None) -> Optional[T]:
     """안전하게 객체의 속성에 접근
 
     Args:
@@ -25,30 +36,12 @@ def safe_get(obj: Any, attr_name: str, default: Any = None) -> Any:
         속성 값 또는 기본값
     """
     if obj is None:
-        return default
+        return cast(Optional[T], default)
     try:
-        return getattr(obj, attr_name, default)
+        return cast(T, getattr(obj, attr_name, default))
     except Exception as e:
-        logger.debug(f"속성 {attr_name} 접근 실패: {str(e)}")
-        return default
-
-
-def safe_int(value: Any, default: int = 0) -> int:
-    """안전하게 정수로 변환
-
-    Args:
-        value: 변환할 값
-        default: 변환 실패 시 반환할 기본값
-
-    Returns:
-        변환된 정수 또는 기본값
-    """
-    if value is None:
-        return default
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return default
+        logger.info(f"속성 {attr_name} 접근 실패: {str(e)}")
+        return cast(Optional[T], default)
 
 
 def safe_float(value: Any, default: float = 0.0) -> float:
@@ -65,24 +58,6 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
     try:
         return float(value)
-    except (ValueError, TypeError):
-        return default
-
-
-def safe_str(value: Any, default: str = "") -> str:
-    """안전하게 문자열로 변환
-
-    Args:
-        value: 변환할 값
-        default: 변환 실패 시 반환할 기본값
-
-    Returns:
-        변환된 문자열 또는 기본값
-    """
-    if value is None:
-        return default
-    try:
-        return str(value)
     except (ValueError, TypeError):
         return default
 
@@ -109,7 +84,17 @@ def safe_list(value: Any, default: Optional[List] = None) -> List:
         return default
 
 
-def safe_get_item(obj: Any, key: Any, default: Any = None) -> Any:
+@overload
+def safe_get_item(obj: Any, key: K) -> Optional[T]:
+    pass
+
+
+@overload
+def safe_get_item(obj: Any, key: K, default: T) -> T:
+    pass
+
+
+def safe_get_item(obj: Any, key: Any, default: Any = None) -> Optional[T]:
     """안전하게 컨테이너의 아이템에 접근
 
     Args:
@@ -121,11 +106,11 @@ def safe_get_item(obj: Any, key: Any, default: Any = None) -> Any:
         아이템 또는 기본값
     """
     if obj is None:
-        return default
+        return cast(Optional[T], default)
     try:
-        return obj[key]
+        return cast(T, obj[key])
     except (KeyError, TypeError, IndexError):
-        return default
+        return cast(Optional[T], default)
 
 
 def log_exception(
