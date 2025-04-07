@@ -3,30 +3,21 @@ import hashlib
 from task import analysis_health_query
 
 
-def classify_interest(query: str) -> str:
-    query = query.lower()
-    if "수면" in query or "잠" in query:
-        return "sleep"
-    elif "스트레스" in query:
-        return "stress"
-    elif "심박수" in query:
-        return "heart-rate"
-    elif "걸음" in query or "운동" in query or "활동" in query:
-        return "activity"
-    else:
-        return "general"
-
-
 def get_query_hash(query: str, length: int = 8) -> str:
     return hashlib.md5(query.strip().lower().encode("utf-8")).hexdigest()[:length]
 
 
-def generate_task_id(user_id: str, date: str, task_name: str, query: str = "") -> str:
+def generate_task_id(
+    user_id: str,
+    date: str,
+    task_name: str,
+    user_analysis_intent: str,
+    query: str = "",
+) -> str:
     base = f"{user_id}_{date}_{task_name}"
     if task_name == analysis_health_query.name and query:
-        interest = classify_interest(query)
         query_hash = get_query_hash(query)
-        return f"{base}_{interest}_{query_hash}"
+        return f"{base}_{user_analysis_intent}_{query_hash}"
     return base
 
 

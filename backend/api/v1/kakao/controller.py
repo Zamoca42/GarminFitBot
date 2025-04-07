@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime
+from datetime import datetime
 
 import pytz
 from celery.result import AsyncResult
@@ -140,10 +140,18 @@ class KakaoController:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
             user_query = request.userRequest.utterance
+            analysis_intent = request.action.params["analysis_intent"]
+            user_analysis_intent = (
+                "general"
+                if analysis_intent is None or str(analysis_intent).strip() == ""
+                else str(analysis_intent)
+            )
             timezone = pytz.timezone(user_timezone) if user_timezone else pytz.utc
             date = datetime.now(timezone).strftime("%Y-%m-%d")
             task_name = analysis_health_query.name
-            task_id = generate_task_id(user_key, date, task_name, user_query)
+            task_id = generate_task_id(
+                user_key, date, task_name, user_analysis_intent, user_query
+            )
             celery_task_id = generate_celery_task_id(task_id)
             task_result = AsyncResult(celery_task_id)
             task_status_url = f"{FRONTEND_URL}/{task_id_to_path(task_id)}/status"
