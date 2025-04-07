@@ -1,5 +1,6 @@
 import fix20250404 from './2025-04-04-fix.md?raw';
 import fix20250405 from './2025-04-05-fix.md?raw';
+import improvement20250406 from './2025-04-06-improvement.md?raw';
 
 export type UpdateType = 'feature' | 'bugfix' | 'improvement' | 'release';
 
@@ -13,6 +14,14 @@ export type UpdateMetadata = {
 };
 
 export const updates: UpdateMetadata[] = [
+  {
+    id: '2025-04-06-improvement',
+    date: '2025-04-06',
+    title: '챗봇 프로필 조회 및 데이터 수집 명령어 개선',
+    type: 'improvement',
+    summary: 'GarminFitBot의 기능이 개선되었습니다. 이번 업데이트에서는 사용자 프로필 조회 기능과 자연어 기반 날짜 인식 기능이 추가되었습니다.',
+    content: improvement20250406
+  },
   {
     id: '2025-04-05-fix',
     date: '2025-04-05',
