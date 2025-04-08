@@ -1,7 +1,7 @@
 """ReAct 에이전트 구현"""
 
-from datetime import datetime
-from typing import Optional
+from datetime import date, datetime
+from typing import Dict, List, Optional, Union
 
 import pytz
 from langchain_core.messages import (
@@ -27,6 +27,7 @@ from app.agent.state import (
     AnalysisPlan,
     DateRange,
     HealthAnalysisResult,
+    determine_date_type_and_origin,
     save_analysis_result,
 )
 from app.agent.tool import (
@@ -83,31 +84,67 @@ class HealthAnalysisAgent:
 
         return tools_info
 
-    def _initialize_llm(self, temperature: float = 0.8):
+    def _initialize_llm(
+        self, temperature: float = 0.8, model_name: str = "gemini-2.0-flash"
+    ):
         """LLM 초기화"""
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model=model_name,
             google_api_key=GEMINI_API_KEY,
             temperature=temperature,
         )
         return model
 
+    def _adjust_date_range(
+        self, start_date_str: str, end_date_str: str, today_date: date
+    ) -> DateRange:
+        """LLM에서 추출된 날짜 문자열을 파싱하고 오늘 날짜 기준으로 조정합니다."""
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            start_date = today_date
+            end_date = today_date
+
+        adjusted_start_date = min(start_date, today_date)
+        adjusted_end_date = min(end_date, today_date)
+
+        if adjusted_start_date > adjusted_end_date:
+            adjusted_start_date = adjusted_end_date
+
+        return DateRange(
+            start_date=adjusted_start_date.strftime("%Y-%m-%d"),
+            end_date=adjusted_end_date.strftime("%Y-%m-%d"),
+        )
+
     def _extract_analysis_dates(self, state: AgentState):
         """사용자 쿼리에서 분석할 날짜 범위를 추출"""
-        date_llm = self._initialize_llm(temperature=0).with_structured_output(DateRange)
-        dates = create_date_prompt().invoke(
+        detail_params = state.get("detail_params", {})
+        user_query = state["user_query"]
+        today_date = state["today"]
+        date_type, origin = determine_date_type_and_origin(detail_params, user_query)
+
+        date_llm = self._initialize_llm().with_structured_output(DateRange)
+        prompt = create_date_prompt().invoke(
             {
-                "today": state["today"].strftime("%Y-%m-%d"),
-                "query": state["user_query"],
+                "today": today_date.strftime("%Y-%m-%d"),
+                "query": origin,
+                "date_type": date_type,
             }
         )
-        return date_llm.invoke(dates)
+        dates_output: DateRange = date_llm.invoke(prompt)
+        adjusted_dates = self._adjust_date_range(
+            dates_output.start_date, dates_output.end_date, today_date
+        )
+        return adjusted_dates
 
-    def _generate_analysis_plan(self, state: AgentState, start_date, end_date):
+    def _generate_analysis_plan(self, state: AgentState, date_range: DateRange):
         """추출된 날짜 범위를 기반으로 분석 계획을 생성"""
-        planner_llm = self._initialize_llm().with_structured_output(AnalysisPlan)
+        planner_llm = self._initialize_llm(
+            model_name="gemini-1.5-pro"
+        ).with_structured_output(AnalysisPlan)
         date_message = SystemMessage(
-            content=f"오늘 날짜는 {state['today'].strftime('%Y-%m-%d')}입니다. 분석해야 할 기간은 {start_date}부터 {end_date}까지입니다."
+            content=f"오늘 날짜는 {state['today'].strftime('%Y-%m-%d')}입니다.\n분석해야 할 기간은 {date_range.start_date}부터 {date_range.end_date}까지입니다."
         )
         planner_message = [
             create_planner_prompt(),
@@ -120,16 +157,12 @@ class HealthAnalysisAgent:
         """사용자 질문에 따른 분석 기간과 계획 생성"""
 
         def plan_processor(state: AgentState):
-            output = self._extract_analysis_dates(state)
-            start_date = datetime.strptime(output.start_date, "%Y-%m-%d").date()
-            end_date = datetime.strptime(output.end_date, "%Y-%m-%d").date()
-            response = self._generate_analysis_plan(state, start_date, end_date)
+            date_range_output: DateRange = self._extract_analysis_dates(state)
+            response = self._generate_analysis_plan(state, date_range_output)
             return {
                 "analysis_plan": response.analysis_plan,
                 "focus_areas": response.focus_areas,
                 "user_intent": response.user_intent,
-                "start_date": start_date,
-                "end_date": end_date,
             }
 
         return plan_processor
@@ -218,23 +251,29 @@ class HealthAnalysisAgent:
 
         return [msg.content for msg in tool_messages]
 
-    def _process_analysis_history(self, analysis_history, comment_length=500):
-        """분석 이력을 처리하는 공통 함수
+    def _process_analysis_history(
+        self, analysis_history: List[HealthAnalysisResult], comment_length=1000
+    ) -> List[Dict[str, Union[str, List[str]]]]:
+        """분석 이력을 처리하여 요약과 해당 인사이트를 그룹화하여 반환합니다.
 
         Args:
-            analysis_history: 분석 이력 목록
+            analysis_history: 분석 이력 목록 (HealthAnalysisResult 객체 리스트)
             comment_length: 각 코멘트 최대 길이
 
         Returns:
-            Tuple[List[str], List[str]]: (요약 목록, 포맷팅된 인사이트 목록)
+            List[Dict[str, Union[str, List[str]]]]: 각 분석 결과의 요약과 인사이트 목록을 담은 딕셔너리 리스트
+            예: [{'summary': '요약1', 'insights': ['인사이트1-1', '인사이트1-2']}, {'summary': '요약2', 'insights': ['인사이트2-1']}]
         """
         if not analysis_history:
-            return [], []
+            return []
 
-        summaries = []
-        formatted_insights = []
+        processed_history = []
 
         for result in analysis_history:
+            current_summary = (
+                result.summary if result.summary else "요약 없음"
+            )  # Handle None summary
+            current_insights = []
             for insight in result.insights:
                 if not insight.comment:
                     continue
@@ -244,40 +283,52 @@ class HealthAnalysisAgent:
                     if len(insight.comment) > comment_length
                     else insight.comment
                 )
-                formatted_insights.append(f"{comment}")
+                current_insights.append(comment)
 
-        return summaries, formatted_insights
+            processed_history.append(
+                {"summary": current_summary, "insights": current_insights}
+            )
+
+        return processed_history
+
+    def _format_analysis_history_for_prompt(
+        self, processed_history: List[Dict[str, Union[str, List[str]]]]
+    ) -> str:
+        """처리된 분석 기록을 _generate_analysis 프롬프트용 문자열로 포맷팅합니다."""
+        if not processed_history:
+            return "이전 분석 결과 없음."
+
+        analysis_parts = []
+        for i, history_item in enumerate(processed_history):
+            summary_part = f"이전 분석 결과 {i+1}:\n{history_item['summary']}"
+            insights_part = ""
+            if history_item["insights"]:
+                insights_list_str = "\n".join(
+                    [f"- {insight}" for insight in history_item["insights"]]
+                )
+                insights_part = f"\n주요 인사이트:\n{insights_list_str}"
+            analysis_parts.append(summary_part + insights_part)
+
+        return "\n\n".join(analysis_parts)
 
     def _generate_analysis(self, state: AgentState, parsed_tool_data):
         """AI에게 건강 데이터 분석 요청"""
         analyze_health_llm = self._initialize_llm().with_structured_output(
             HealthAnalysisResult
         )
-        system_message = create_health_analyze_prompt()
+        system_message = create_health_analyze_prompt(self._extract_tool_metadata())
         human_message = HumanMessage(content=f"도구 실행 결과: {parsed_tool_data}")
 
-        previous_analysis_summaries = ""
-        if state["analysis_history"]:
-            summaries = []
-            past_summaries, past_insights = self._process_analysis_history(
-                state["analysis_history"]
-            )
+        processed_history = self._process_analysis_history(
+            state.get("analysis_history", [])
+        )
+        previous_analysis_content = self._format_analysis_history_for_prompt(
+            processed_history
+        )
 
-            for i, summary in enumerate(past_summaries):
-                summaries.append(
-                    f"이전 분석 결과 {i+1}:\n{summary}\n\n주요 인사이트:\n- "
-                    + "\n- ".join(
-                        past_insights[i * 5 : (i + 1) * 5]
-                        if i < len(past_insights) // 5
-                        else past_insights
-                    )
-                )
-
-            previous_analysis_summaries = "\n\n".join(summaries)
-        else:
-            previous_analysis_summaries = "이전 분석 결과 없음."
-
-        plan_items = [f"- {plan}" for plan in state["analysis_plan"]]
+        plan_items = [
+            f"- {plan}" for plan in state.get("analysis_plan", [])
+        ]  # None 대신 빈 리스트 사용
         analysis_plan = """
         분석 계획:
         """ + "\n".join(
@@ -285,12 +336,12 @@ class HealthAnalysisAgent:
         )
 
         previous_analysis_message = SystemMessage(
-            content=f"""          
+            content=f"""
             {analysis_plan}
 
             이전 분석 결과를 고려하여 새로운 건강 분석을 수행하세요.
 
-            {previous_analysis_summaries}
+            {previous_analysis_content}
             """
         )
         response = analyze_health_llm.invoke(
@@ -321,37 +372,55 @@ class HealthAnalysisAgent:
         return analysis
 
     def _create_report_node(self):
-        """분석 노드의 결과를 최종 보고서로 변환하는 노드"""
-        llm = self._initialize_llm()
+        """분석 노드의 결과를 최종 보고서로 변환하는 노드 (수정됨)"""
+        report_llm = self._initialize_llm(
+            model_name="gemini-2.0-flash-thinking-exp-01-21"
+        )
 
         def report(state: AgentState):
-            past_summaries, past_insights = self._process_analysis_history(
-                state["analysis_history"]
+            processed_history = self._process_analysis_history(
+                state.get("analysis_history", [])
             )
 
-            joined_summaries = " ".join(past_summaries)
-            joined_insights = "- " + "\n- ".join(past_insights)
+            all_summaries = [
+                item.get("summary", "요약 없음") for item in processed_history
+            ]
+            joined_summaries = " ".join(all_summaries)
 
-            human_message = HumanMessage(
+            all_insights = [
+                insight
+                for item in processed_history
+                for insight in item.get("insights", [])
+            ]
+            joined_insights = "- " + "\n- ".join(all_insights)
+
+            focus_areas_str = ", ".join(state.get("focus_areas", ["건강"]))
+            user_intent = state.get(
+                "user_intent", "최근 건강 상태가 어떤지 알고 싶어합니다."
+            )
+
+            report_prompt_message = HumanMessage(
                 content=f"""
-                # 🏥 ({', '.join(state.get('focus_areas', ['건강']))} 중 사용자 질문 의도에 맞는 단어) 분석 보고서
+                # 🏥 ({focus_areas_str} 중 사용자 질문 의도에 맞는 단어) 분석 보고서
 
                 ## 🙋 사용자 질문 의도
-                {state.get("user_intent", "최근 건강 상태가 어떤지 알고 싶어합니다.")}
+                {user_intent}
 
                 # 📌 요약
-                {joined_summaries}
+                {joined_summaries if joined_summaries else '종합적인 요약 정보가 없습니다.'}
 
                 # 🔍 주요 인사이트
-                {joined_insights}
+                {joined_insights if all_insights else '특별한 인사이트가 발견되지 않았습니다.'}
 
-                위 데이터를 기반으로 건강 피드백과 개선 방안을 Markdown 형식으로 작성하세요.
+                위 데이터를 기반으로 건강 피드백과 개선 방안을 Markdown 형식으로 보고서만 작성하세요.
                 """
             )
-            response = llm.invoke([create_final_report_prompt(), human_message])
+            response = report_llm.invoke(
+                [create_final_report_prompt(), report_prompt_message]
+            )
 
             return {
-                "messages": state["messages"] + [response],
+                "messages": state.get("messages", []) + [response],
                 "final_report": response.content,
             }
 
@@ -413,6 +482,7 @@ class HealthAnalysisAgent:
 
     def create_initial_state(
         self,
+        detail_params: dict,
         query: str,
         user_id: int,
         user_timezone: Optional[str] = None,
@@ -430,6 +500,7 @@ class HealthAnalysisAgent:
             "analysis_history": [],
             "loop_count": 0,
             "final_report": "",
+            "detail_params": detail_params,
         }
 
     @traceable
@@ -437,6 +508,7 @@ class HealthAnalysisAgent:
         self,
         query: str,
         user_id: int,
+        detail_params: dict,
         user_timezone: Optional[str] = None,
     ):
         """에이전트 실행"""
@@ -445,6 +517,7 @@ class HealthAnalysisAgent:
                 query=query,
                 user_id=user_id,
                 user_timezone=user_timezone,
+                detail_params=detail_params,
             )
 
             graph = self._create_graph()

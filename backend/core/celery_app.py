@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import timedelta
 
 import redis
 from celery import Celery, signals
@@ -70,6 +71,49 @@ def on_task_end(*args, **kwargs):
         logger.info("Task ended, active tasks count decreased")
     except Exception as e:
         logger.error(f"Error decreasing active tasks count: {e}")
+
+
+def set_result_ttl(task_id: str, ttl_seconds: int):
+    """Redis에 결과 키의 TTL을 설정합니다."""
+    if ttl_seconds > 0:
+        result_key = f"celery-task-meta-{task_id}"
+        try:
+            was_set = sync_redis_client.expire(result_key, ttl_seconds)
+            if was_set:
+                logger.info(
+                    f"Set TTL for task {task_id} result key {result_key} to {ttl_seconds} seconds."
+                )
+            else:
+                logger.warning(
+                    f"Could not set TTL for task {task_id}. Key {result_key} might not exist or backend doesn't store result for this state."
+                )
+        except Exception as e:
+            logger.error(
+                f"Error setting TTL for task {task_id} result key {result_key}: {e}"
+            )
+
+
+@signals.task_postrun.connect
+def apply_task_result_expires(sender=None, task_id=None, **kwargs):
+    """
+    Task 성공/실패 후 결과 키의 TTL을 task의 expires 속성에 따라 설정합니다.
+    기존 on_task_end 핸들러와 별개로 실행됩니다.
+    """
+    if sender is not None and hasattr(sender, "expires"):
+        expires_value = sender.expires
+        ttl_seconds = None
+
+        if isinstance(expires_value, (int, float)):
+            ttl_seconds = int(expires_value)
+        elif isinstance(expires_value, timedelta):
+            ttl_seconds = int(expires_value.total_seconds())
+        else:
+            logger.warning(
+                f"Task {task_id} has unrecognized expires type: {type(expires_value)}. Cannot set TTL."
+            )
+
+        if ttl_seconds is not None and ttl_seconds > 0:
+            set_result_ttl(task_id, ttl_seconds)
 
 
 @signals.task_failure.connect
