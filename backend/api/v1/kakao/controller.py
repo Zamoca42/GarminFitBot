@@ -19,7 +19,11 @@ from api.common.schema.date_parser import DateParserRequest, DateParserResponse
 from app.model import User
 from app.service import DateParserService, TokenService
 from core.config import FRONTEND_URL
-from core.util.redis import is_duplicate_request
+from core.util.redis import (
+    format_remaining_time,
+    get_task_result_ttl,
+    is_duplicate_request,
+)
 from core.util.task_id import generate_celery_task_id, generate_task_id, task_id_to_path
 from task import analysis_health_query, collect_fit_data
 
@@ -55,18 +59,22 @@ class KakaoController:
             task_status_url = f"{FRONTEND_URL}/{task_id_to_path(task_id)}/status"
 
             if task_result.status == "SUCCESS":
+                ttl = await get_task_result_ttl(celery_task_id)
+                wait_message = ""
+                if ttl > 0:
+                    remaining_time_str = format_remaining_time(ttl)
+                    wait_message = f"{remaining_time_str} 후에 다시 요청해 주세요 😊"
+
+                success_text = (
+                    f"요청하신 수집일: {origin_date}\n"
+                    f"수집한 날짜: {formatted_date}\n"
+                    f"수집이 완료되었어요.\n"
+                    f"{' ' + wait_message if wait_message else ' 다음 날 다시 요청해 주세요 😊'}"
+                )
+
                 return KakaoResponse(
                     template=Template(
-                        outputs=[
-                            {
-                                "simpleText": SimpleText(
-                                    text=f"요청하신 수집일: {origin_date}\n"
-                                    f"수집한 날짜: {formatted_date}\n"
-                                    f"수집이 완료되었어요.\n"
-                                    f"다음 날 다시 요청해 주세요 😊"
-                                )
-                            }
-                        ]
+                        outputs=[{"simpleText": SimpleText(text=success_text)}]
                     )
                 )
             elif task_result.status in ["STARTED", "PROGRESS"]:
@@ -138,6 +146,7 @@ class KakaoController:
         logger.info(f"건강 데이터 분석 요청: {request}")
         try:
             user_key = request.userRequest.user.id
+            detail_params = request.action.detailParams
             user_timezone = request.userRequest.timezone
             user_query = request.userRequest.utterance
             analysis_intent = (
@@ -224,6 +233,7 @@ class KakaoController:
                     "kakao_client_id": user_key,
                     "query": user_query,
                     "user_timezone": user_timezone,
+                    "detail_params": detail_params,
                 },
                 task_id=celery_task_id,
             )
