@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Annotated, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Annotated, Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
@@ -21,7 +21,7 @@ class DateRange(BaseModel):
 
 
 class InsightItem(BaseModel):
-    comment: str = Field(..., description="날짜별 주요 패턴 및 통찰", max_length=500)
+    comment: str = Field(..., description="날짜별 주요 패턴 및 통찰")
 
 
 class HealthAnalysisResult(BaseModel):
@@ -57,8 +57,7 @@ class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     tool_needed: bool = True
     user_id: int
-    start_date: Optional[date]
-    end_date: Optional[date]
+    detail_params: Dict[str, Any]
     user_timezone: Optional[str]
     today: Optional[date]
     final_report: str
@@ -72,3 +71,14 @@ def save_analysis_result(state: AgentState, result: HealthAnalysisResult):
     if state.get("analysis_history") is None:
         state["analysis_history"] = []
     state["analysis_history"].append(result)
+
+
+def determine_date_type_and_origin(
+    detail_params: dict, user_query: str
+) -> tuple[str, str]:
+    if "sys_date_period" in detail_params:
+        return "period", detail_params["sys_date_period"]["origin"]
+    elif "sys_date" in detail_params:
+        return "single", detail_params["sys_date"]["origin"]
+    else:
+        return "auto", user_query
