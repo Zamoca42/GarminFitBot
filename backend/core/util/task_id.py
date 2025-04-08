@@ -11,7 +11,7 @@ def generate_task_id(
     user_id: str,
     date: str,
     task_name: str,
-    user_analysis_intent: str,
+    user_analysis_intent: str = "",
     query: str = "",
 ) -> str:
     base = f"{user_id}_{date}_{task_name}"

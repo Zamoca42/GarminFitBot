@@ -140,7 +140,10 @@ class KakaoController:
             user_key = request.userRequest.user.id
             user_timezone = request.userRequest.timezone
             user_query = request.userRequest.utterance
-            analysis_intent = request.action.params["analysis_intent"]
+            analysis_intent = (
+                request.action.params["analysis_intent"]
+                or request.action.params["analysis_intent1"]
+            )
             user_analysis_intent = (
                 "general"
                 if analysis_intent is None or str(analysis_intent).strip() == ""
