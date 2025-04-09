@@ -1,7 +1,7 @@
 import fix20250404 from './2025-04-04-fix.md?raw';
 import fix20250405 from './2025-04-05-fix.md?raw';
 import improvement20250406 from './2025-04-06-improvement.md?raw';
-
+import improvement20250408 from './2025-04-08-improvement.md?raw';
 export type UpdateType = 'feature' | 'bugfix' | 'improvement' | 'release';
 
 export type UpdateMetadata = {
@@ -14,6 +14,14 @@ export type UpdateMetadata = {
 };
 
 export const updates: UpdateMetadata[] = [
+  {
+    id: '2025-04-08-improvement',
+    date: '2025-04-08',
+    title: '챗봇 분석 명령어 인식 및 에이전트 개선',
+    type: 'improvement',
+    summary: '엔티티 기반 명령어 인식 시스템 도입으로 사용자가 다양한 표현과 어조로 요청해도 키워드만 파악하여 분석 명령을 실행할 수 있도록 개선했습니다.',
+    content: improvement20250408
+  },
   {
     id: '2025-04-06-improvement',
     date: '2025-04-06',
