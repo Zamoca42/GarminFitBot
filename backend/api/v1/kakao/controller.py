@@ -248,10 +248,10 @@ class KakaoController:
                         {
                             "textCard": TextCard(
                                 title=f"AI가 {origin_analysis_intent} 분석 시작",
-                                description=f"AI가 {origin_analysis_intent} 데이터를 분석하기 시작했어요! 💪\n분석이 끝나면 아래 버튼을 눌러 결과를 확인해 주세요.",
+                                description=f"AI가 {origin_analysis_intent} 데이터를 분석하기 시작했어요! 💪\n아래 버튼을 눌러 진행 상황을 확인해 주세요.",
                                 buttons=[
                                     WebLinkButton(
-                                        label=f"{origin_analysis_intent} 분석 중",
+                                        label=f"{origin_analysis_intent} 분석 시작",
                                         webLinkUrl=task_status_url,
                                     )
                                 ],
