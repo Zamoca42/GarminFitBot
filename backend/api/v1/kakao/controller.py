@@ -83,8 +83,8 @@ class KakaoController:
                         outputs=[
                             {
                                 "textCard": TextCard(
-                                    title="데이터 수집 진행 중",
-                                    description="이미 데이터 수집이 진행 중이에요!\n아래 버튼을 눌러 현재 상황을 확인해 보세요 👇",
+                                    title=f"{origin_date} 데이터 수집 진행 중",
+                                    description=f"{origin_date} 데이터 수집이 진행 중이에요!\n아래 버튼을 눌러 현재 상황을 확인해 보세요 👇",
                                     buttons=[
                                         WebLinkButton(
                                             label="진행 상황 확인",
@@ -112,8 +112,8 @@ class KakaoController:
                     outputs=[
                         {
                             "textCard": TextCard(
-                                title="데이터 수집 시작",
-                                description="데이터 수집을 시작했어요!\n작업 상태는 아래 버튼에서 확인하실 수 있어요 👍",
+                                title=f"{origin_date} 데이터 수집 시작",
+                                description=f"{origin_date} 데이터 수집을 시작했어요!\n작업 상태는 아래 버튼에서 확인하실 수 있어요 👍",
                                 buttons=[
                                     WebLinkButton(
                                         label="결과 확인하기",
@@ -132,7 +132,7 @@ class KakaoController:
                     outputs=[
                         {
                             "simpleText": SimpleText(
-                                text=f"데이터 수집 오류가 발생했어요.\n잠시 후 다시 시도해 주세요."
+                                text=f"{origin_date} 데이터 수집 오류가 발생했어요.\n잠시 후 다시 시도해 주세요."
                             )
                         }
                     ]
@@ -158,6 +158,10 @@ class KakaoController:
                 if analysis_intent is None or str(analysis_intent).strip() == ""
                 else str(analysis_intent)
             )
+            origin_analysis_intent = (
+                str(detail_params["analysis_intent"]["origin"])
+                or user_analysis_intent
+            )
             timezone = pytz.timezone(user_timezone) if user_timezone else pytz.utc
             date = datetime.now(timezone).strftime("%Y-%m-%d")
             task_name = analysis_health_query.name
@@ -174,11 +178,11 @@ class KakaoController:
                         outputs=[
                             {
                                 "textCard": TextCard(
-                                    title="분석 중복 요청",
-                                    description="이미 해당 요청에 대한 분석이 진행 중이에요 😊\n결과는 아래 버튼을 눌러 확인하실 수 있어요.",
+                                    title=f"{origin_analysis_intent} 분석 중복 요청",
+                                    description=f"{origin_analysis_intent} 데이터 분석이 진행 중이에요 😊\n결과는 아래 버튼을 눌러 확인하실 수 있어요.",
                                     buttons=[
                                         WebLinkButton(
-                                            label="결과 확인",
+                                            label=f"{origin_analysis_intent} 분석 중",
                                             webLinkUrl=task_status_url,
                                         )
                                     ],
@@ -194,11 +198,11 @@ class KakaoController:
                         outputs=[
                             {
                                 "textCard": TextCard(
-                                    title="분석 완료",
-                                    description="분석이 모두 완료되었어요!\n아래 버튼을 눌러 결과를 확인해 보세요 🎉",
+                                    title=f"{origin_analysis_intent} 데이터 분석 완료",
+                                    description=f"{origin_analysis_intent} 데이터 분석이 모두 완료되었어요!\n아래 버튼을 눌러 결과를 확인해 보세요 🎉",
                                     buttons=[
                                         WebLinkButton(
-                                            label="결과 확인",
+                                            label="분석 결과 확인",
                                             webLinkUrl=task_status_url,
                                         )
                                     ],
@@ -213,11 +217,11 @@ class KakaoController:
                         outputs=[
                             {
                                 "textCard": TextCard(
-                                    title="AI가 건강 데이터 분석을 진행 중입니다",
+                                    title=f"AI가 {origin_analysis_intent} 분석 진행 중",
                                     description="지금 AI가 열심히 분석 중이에요 🔍\n아래 버튼으로 진행 상황을 확인해 보세요.",
                                     buttons=[
                                         WebLinkButton(
-                                            label="진행 상황 확인",
+                                            label=f"{origin_analysis_intent} 분석 중",
                                             webLinkUrl=task_status_url,
                                         )
                                     ],
@@ -243,11 +247,11 @@ class KakaoController:
                     outputs=[
                         {
                             "textCard": TextCard(
-                                title="AI가 건강 데이터 분석을 시작합니다",
-                                description="AI가 건강 데이터를 분석하기 시작했어요! 💪\n분석이 끝나면 아래 버튼을 눌러 결과를 확인해 주세요.",
+                                title=f"AI가 {origin_analysis_intent} 분석 시작",
+                                description=f"AI가 {origin_analysis_intent} 데이터를 분석하기 시작했어요! 💪\n분석이 끝나면 아래 버튼을 눌러 결과를 확인해 주세요.",
                                 buttons=[
                                     WebLinkButton(
-                                        label="결과 확인하기",
+                                        label=f"{origin_analysis_intent} 분석 중",
                                         webLinkUrl=task_status_url,
                                     )
                                 ],
@@ -257,8 +261,17 @@ class KakaoController:
                 )
             )
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            logger.error(f"데이터 분석 요청 오류: {e}")
+            return KakaoResponse(
+                template=Template(
+                    outputs=[
+                        {
+                            "simpleText": SimpleText(
+                                text=f"{user_analysis_intent} 데이터 분석 오류가 발생했어요.\n잠시 후 다시 시도해 주세요."
+                            )
+                        }
+                    ]
+                )
             )
 
     async def get_garmin_profile(self, request: KakaoRequest) -> KakaoResponse:
@@ -298,9 +311,7 @@ class KakaoController:
                             connect_last_sync_info, "%Y-%m-%dT%H:%M:%S.%f"
                         )
                         localized_time = pytz.utc.localize(sync_time).astimezone(tz)
-                        last_sync_time = localized_time.strftime(
-                            "%Y년 %m월 %d일 %H시 %M분"
-                        )
+                        last_sync_time = localized_time.strftime("%Y-%m-%d %H:%M")
                     except Exception:
                         last_sync_time = connect_last_sync_info
                 else:
@@ -308,7 +319,7 @@ class KakaoController:
 
                 if user.created_at:
                     created_at_kr = user.created_at.astimezone(tz)
-                    connected_at = created_at_kr.strftime("%Y년 %m월 %d일")
+                    connected_at = created_at_kr.strftime("%Y-%m-%d")
                 else:
                     connected_at = "알 수 없음"
 
